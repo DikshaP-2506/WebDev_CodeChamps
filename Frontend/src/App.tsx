@@ -14,6 +14,7 @@ import SupplierDetails from "./pages/vendor/SupplierDetails";
 import OrderSummary from "./pages/vendor/OrderSummary";
 import CreateOrder from "./pages/vendor/CreateOrder";
 import NotFound from "./pages/NotFound";
+import PaymentDebug from "./pages/PaymentDebug";
 import { AuthProvider } from "./contexts/AuthContext";
 
 const queryClient = new QueryClient();
@@ -36,6 +37,7 @@ const App = () => (
             <Route path="/vendor/order-summary" element={<OrderSummary />} />
             <Route path="/vendor/create-order" element={<CreateOrder />} />
             <Route path="/supplier/dashboard" element={<SupplierDashboard />} />
+            <Route path="/payment-debug" element={<PaymentDebug />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

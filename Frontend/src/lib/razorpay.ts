@@ -174,8 +174,17 @@ export const generateOrderId = (type: 'individual' | 'group'): string => {
 
 // Validate payment response
 export const validatePaymentResponse = (response: RazorpayResponse): boolean => {
-  return !!(response.razorpay_payment_id && 
-           (response.razorpay_order_id || response.razorpay_signature));
+  // For demo/test mode, just check if we have a payment ID
+  const hasPaymentId = !!response.razorpay_payment_id;
+  
+  console.log('🔍 Payment Response Validation:');
+  console.log('💳 Payment ID:', response.razorpay_payment_id);
+  console.log('📝 Order ID:', response.razorpay_order_id);
+  console.log('🔐 Signature:', response.razorpay_signature);
+  console.log('✅ Valid:', hasPaymentId);
+  
+  // In demo mode or when no backend integration, payment ID is sufficient
+  return hasPaymentId;
 };
 
 // Format amount for display

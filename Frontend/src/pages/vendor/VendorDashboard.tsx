@@ -7,6 +7,7 @@ import { Plus, Users, ShoppingCart, Package, Clock, MapPin, Filter, Search, Tren
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { usePayment } from "@/hooks/use-payment";
+import { PaymentSuccess } from "@/components/PaymentSuccess";
 import { 
   generateOrderId, 
   formatAmount,
@@ -34,6 +35,10 @@ const VendorDashboard = () => {
   const [paymentDetails, setPaymentDetails] = useState(null);
   const [orderQuantity, setOrderQuantity] = useState(1);
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
+  
+  // Payment success states
+  const [showPaymentSuccess, setShowPaymentSuccess] = useState(false);
+  const [paymentSuccessData, setPaymentSuccessData] = useState(null);
   
   // Location-based filtering states
   const [currentLocation, setCurrentLocation] = useState(null);
@@ -382,7 +387,31 @@ const VendorDashboard = () => {
         };
 
         await processCODPayment(codPaymentData, () => {
+          // Prepare success data for COD
+          const successData = {
+            paymentId: `COD_${Date.now()}`,
+            orderId: paymentDetails.orderId,
+            amount: paymentDetails.total,
+            orderType: paymentDetails.type,
+            productName: paymentDetails.type === 'individual' ? paymentDetails.product : paymentDetails.group.product,
+            supplierName: paymentDetails.type === 'individual' ? paymentDetails.supplier.name : paymentDetails.group.supplier,
+            quantity: paymentDetails.quantity,
+            pricePerKg: paymentDetails.pricePerKg,
+            subtotal: paymentDetails.subtotal,
+            tax: paymentDetails.tax,
+            deliveryCharge: paymentDetails.deliveryCharge || 0,
+            groupDiscount: paymentDetails.groupDiscount || 0,
+            customerDetails: {
+              name: userDetails.name,
+              email: userDetails.email,
+              phone: userDetails.phone,
+              address: currentLocation?.name || 'Not provided'
+            }
+          };
+
+          setPaymentSuccessData(successData);
           setShowPaymentModal(false);
+          setShowPaymentSuccess(true);
           setPaymentDetails(null);
         });
         return;
@@ -407,7 +436,32 @@ const VendorDashboard = () => {
         userDetails,
         (response) => {
           console.log('Payment successful:', response);
+          
+          // Prepare success data with all receipt information
+          const successData = {
+            paymentId: response.razorpay_payment_id,
+            orderId: paymentDetails.orderId,
+            amount: paymentDetails.total,
+            orderType: paymentDetails.type,
+            productName: paymentDetails.type === 'individual' ? paymentDetails.product : paymentDetails.group.product,
+            supplierName: paymentDetails.type === 'individual' ? paymentDetails.supplier.name : paymentDetails.group.supplier,
+            quantity: paymentDetails.quantity,
+            pricePerKg: paymentDetails.pricePerKg,
+            subtotal: paymentDetails.subtotal,
+            tax: paymentDetails.tax,
+            deliveryCharge: paymentDetails.deliveryCharge || 0,
+            groupDiscount: paymentDetails.groupDiscount || 0,
+            customerDetails: {
+              name: userDetails.name,
+              email: userDetails.email,
+              phone: userDetails.phone,
+              address: currentLocation?.name || 'Not provided'
+            }
+          };
+
+          setPaymentSuccessData(successData);
           setShowPaymentModal(false);
+          setShowPaymentSuccess(true);
           setPaymentDetails(null);
         },
         (error) => {
@@ -2113,6 +2167,17 @@ const VendorDashboard = () => {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Payment Success Modal */}
+      {showPaymentSuccess && paymentSuccessData && (
+        <PaymentSuccess
+          {...paymentSuccessData}
+          onContinueShopping={() => {
+            setShowPaymentSuccess(false);
+            setPaymentSuccessData(null);
+          }}
+        />
       )}
     </div>
   );
