@@ -192,60 +192,37 @@ const SupplierDashboard = () => {
                 </div>
               </div>
             )}
-            <div className="grid gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
               {groupRequests.map((request) => (
-                <Card key={request.id} className="hover:shadow-lg transition-all duration-300">
-                  <CardContent className="p-6">
-                    <div className="flex justify-between items-start mb-4">
-                      <div>
-                        <h3 className="text-lg font-semibold">{request.product}</h3>
-                        <p className="text-muted-foreground">Group order request</p>
-                      </div>
-                      <Badge variant="secondary">
-                        {request.status}
-                      </Badge>
+                <div key={request.id} className="bg-white rounded-lg shadow-sm border hover:shadow-md transition-shadow p-4">
+                  <div className="mb-3">
+                    <div className="w-full h-32 bg-blue-100 rounded-lg flex items-center justify-center mb-3">
+                      <Package className="w-12 h-12 text-blue-600" />
                     </div>
-                    
-                    <div className="grid md:grid-cols-2 gap-4 mb-4">
-                      <div className="space-y-2">
-                        <div className="flex items-center text-sm">
-                          <Package className="w-4 h-4 mr-2 text-muted-foreground" />
-                          {request.quantity} required
-                        </div>
-                        <div className="flex items-center text-sm">
-                          <Users className="w-4 h-4 mr-2 text-muted-foreground" />
-                          {request.vendors} vendors
-                        </div>
-                      </div>
-                      <div className="space-y-2">
-                        <div className="flex items-center text-sm">
-                          <Clock className="w-4 h-4 mr-2 text-muted-foreground" />
-                          Due {formatDeadline(request.deadline)}
-                        </div>
-                        <div className="flex items-center text-sm">
-                          <MapPin className="w-4 h-4 mr-2 text-muted-foreground" />
-                          {request.location}
-                        </div>
-                      </div>
-                    </div>
-                    
-                    <div className="flex items-center justify-between">
-                      <div className="text-lg font-semibold text-blue-600">
-                        Est. Value: {request.estimatedValue}
-                      </div>
-                      <div className="flex gap-2">
-                        <Button variant="outline" size="sm" className="border-red-300 text-red-600 hover:bg-red-50">
-                          <XCircle className="w-4 h-4 mr-2" />
-                          Decline
-                        </Button>
-                        <Button size="sm" className="bg-blue-600 hover:bg-blue-700 text-white">
-                          <CheckCircle className="w-4 h-4 mr-2" />
-                          Accept & Quote
-                        </Button>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
+                  </div>
+                  <div className="font-semibold text-lg text-gray-900">{request.product}</div>
+                  <div className="text-gray-600 text-sm">Group order request</div>
+                  <div className="flex items-center text-xs text-gray-500 mt-1 mb-2">
+                    <span>{request.vendors} vendors</span>
+                    <span className="ml-2 bg-blue-100 text-blue-700 px-2 py-0.5 rounded text-xs">{request.status}</span>
+                  </div>
+                  <div className="text-blue-600 font-bold text-lg mb-1">{request.estimatedValue}</div>
+                  <div className="flex items-center text-xs text-gray-500 mb-2">
+                    <span>Qty: {request.quantity}</span>
+                  </div>
+                  <div className="flex items-center text-xs text-gray-500 mb-3">
+                    <Clock className="w-3 h-3 mr-1" />
+                    <span>Due {formatDeadline(request.deadline)}</span>
+                  </div>
+                  <div className="flex gap-1 mb-2">
+                    <button className="flex-1 bg-red-50 hover:bg-red-100 text-red-600 py-1.5 rounded text-xs font-medium transition-colors">
+                      Decline
+                    </button>
+                    <button className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-1.5 rounded text-xs font-medium transition-colors">
+                      Accept
+                    </button>
+                  </div>
+                </div>
               ))}
             </div>
           </TabsContent>
@@ -255,53 +232,36 @@ const SupplierDashboard = () => {
               <h2 className="text-2xl font-bold mb-2">Individual Orders</h2>
               <p className="text-green-100 mb-4">Process direct vendor orders and requests</p>
             </div>
-            <div className="grid gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
               {individualOrders.map((order) => (
-                <Card key={order.id} className="hover:shadow-lg transition-all duration-300">
-                  <CardContent className="p-6">
-                    <div className="flex justify-between items-start mb-4">
-                      <div>
-                        <h3 className="text-lg font-semibold">{order.product}</h3>
-                        <p className="text-muted-foreground">by {order.vendor}</p>
-                      </div>
-                      <Badge variant="outline">
-                        {order.status}
-                      </Badge>
+                <div key={order.id} className="bg-white rounded-lg shadow-sm border hover:shadow-md transition-shadow p-4">
+                  <div className="mb-3">
+                    <div className="w-full h-32 bg-green-100 rounded-lg flex items-center justify-center mb-3">
+                      <Package className="w-12 h-12 text-green-600" />
                     </div>
-                    
-                    <div className="grid md:grid-cols-2 gap-4 mb-4">
-                      <div className="space-y-2">
-                        <div className="flex items-center text-sm">
-                          <Package className="w-4 h-4 mr-2 text-muted-foreground" />
-                          {order.quantity}
-                        </div>
-                        <div className="flex items-center text-sm">
-                          <span className="font-medium">{order.requestedPrice}</span>
-                        </div>
-                      </div>
-                      <div className="space-y-2">
-                        <div className="flex items-center text-sm">
-                          <MapPin className="w-4 h-4 mr-2 text-muted-foreground" />
-                          {order.location}
-                        </div>
-                        <div className="text-lg font-semibold text-green-600">
-                          {order.totalValue}
-                        </div>
-                      </div>
-                    </div>
-                    
-                    <div className="flex justify-end gap-2">
-                      <Button variant="outline" size="sm" className="border-red-300 text-red-600 hover:bg-red-50">
-                        <XCircle className="w-4 h-4 mr-2" />
-                        Decline
-                      </Button>
-                      <Button size="sm" className="bg-green-600 hover:bg-green-700 text-white">
-                        <CheckCircle className="w-4 h-4 mr-2" />
-                        Accept Order
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
+                  </div>
+                  <div className="font-semibold text-lg text-gray-900">{order.product}</div>
+                  <div className="text-gray-600 text-sm">by {order.vendor}</div>
+                  <div className="flex items-center text-xs text-gray-500 mt-1 mb-2">
+                    <span>{order.location}</span>
+                    <span className="ml-2 bg-green-100 text-green-700 px-2 py-0.5 rounded text-xs">{order.status}</span>
+                  </div>
+                  <div className="text-green-600 font-bold text-lg mb-1">{order.totalValue}</div>
+                  <div className="flex items-center text-xs text-gray-500 mb-2">
+                    <span>Qty: {order.quantity}</span>
+                  </div>
+                  <div className="flex items-center text-xs text-gray-500 mb-3">
+                    <span>Price: {order.requestedPrice}</span>
+                  </div>
+                  <div className="flex gap-1 mb-2">
+                    <button className="flex-1 bg-red-50 hover:bg-red-100 text-red-600 py-1.5 rounded text-xs font-medium transition-colors">
+                      Decline
+                    </button>
+                    <button className="flex-1 bg-green-600 hover:bg-green-700 text-white py-1.5 rounded text-xs font-medium transition-colors">
+                      Accept
+                    </button>
+                  </div>
+                </div>
               ))}
             </div>
           </TabsContent>
@@ -311,52 +271,34 @@ const SupplierDashboard = () => {
               <h2 className="text-2xl font-bold mb-2">Confirmed Orders</h2>
               <p className="text-purple-100 mb-4">Track and manage your confirmed deliveries</p>
             </div>
-            <div className="grid gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
               {confirmedOrders.map((order) => (
-                <Card key={order.id} className="hover:shadow-lg transition-all duration-300">
-                  <CardContent className="p-6">
-                    <div className="flex justify-between items-start mb-4">
-                      <div>
-                        <h3 className="text-lg font-semibold">{order.product}</h3>
-                        <p className="text-muted-foreground">{order.type} Order</p>
-                      </div>
-                      <Badge variant="default">
-                        {order.status}
-                      </Badge>
+                <div key={order.id} className="bg-white rounded-lg shadow-sm border hover:shadow-md transition-shadow p-4">
+                  <div className="mb-3">
+                    <div className="w-full h-32 bg-purple-100 rounded-lg flex items-center justify-center mb-3">
+                      <Package className="w-12 h-12 text-purple-600" />
                     </div>
-                    
-                    <div className="grid md:grid-cols-2 gap-4 mb-4">
-                      <div className="space-y-2">
-                        <div className="flex items-center text-sm">
-                          <Package className="w-4 h-4 mr-2 text-muted-foreground" />
-                          {order.quantity}
-                        </div>
-                        {order.vendors && (
-                          <div className="flex items-center text-sm">
-                            <Users className="w-4 h-4 mr-2 text-muted-foreground" />
-                            {order.vendors} vendors
-                          </div>
-                        )}
-                      </div>
-                      <div className="space-y-2">
-                        <div className="flex items-center text-sm">
-                          <Clock className="w-4 h-4 mr-2 text-muted-foreground" />
-                          Deliver {order.deliveryDate}
-                        </div>
-                        <div className="text-lg font-semibold text-purple-600">
-                          {order.value}
-                        </div>
-                      </div>
-                    </div>
-                    
-                    <div className="flex justify-end">
-                      <Button size="sm" className="bg-purple-600 hover:bg-purple-700 text-white">
-                        <Package className="w-4 h-4 mr-2" />
-                        Mark as Delivered
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
+                  </div>
+                  <div className="font-semibold text-lg text-gray-900">{order.product}</div>
+                  <div className="text-gray-600 text-sm">{order.type} Order</div>
+                  <div className="flex items-center text-xs text-gray-500 mt-1 mb-2">
+                    {order.vendors && <span>{order.vendors} vendors</span>}
+                    <span className={`ml-2 px-2 py-0.5 rounded text-xs ${order.status === 'Ready to Ship' ? 'bg-purple-100 text-purple-700' : 'bg-gray-100 text-gray-700'}`}>
+                      {order.status}
+                    </span>
+                  </div>
+                  <div className="text-purple-600 font-bold text-lg mb-1">{order.value}</div>
+                  <div className="flex items-center text-xs text-gray-500 mb-2">
+                    <span>Qty: {order.quantity}</span>
+                  </div>
+                  <div className="flex items-center text-xs text-gray-500 mb-3">
+                    <Clock className="w-3 h-3 mr-1" />
+                    <span>Deliver {order.deliveryDate}</span>
+                  </div>
+                  <button className="w-full bg-purple-600 hover:bg-purple-700 text-white py-2 rounded-lg font-medium transition-colors">
+                    Mark as Delivered
+                  </button>
+                </div>
               ))}
             </div>
           </TabsContent>
