@@ -1,12 +1,13 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { auth } from '../lib/firebase';
-import { User, onAuthStateChanged } from 'firebase/auth';
+import { User, onAuthStateChanged, signOut } from 'firebase/auth';
 
 interface AuthContextType {
   user: User | null;
   loading: boolean;
   profileCompleted: boolean;
   setProfileCompleted: (completed: boolean) => void;
+  logout: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -46,11 +47,29 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setProfileCompletedState(completed);
   };
 
+  const logout = async () => {
+    try {
+      console.log('AuthContext: Starting logout process...');
+      await signOut(auth);
+      console.log('AuthContext: Firebase signOut successful');
+      // Clear profile completion status
+      if (user) {
+        localStorage.removeItem(`profileCompleted_${user.uid}`);
+        console.log('AuthContext: Cleared profile completion status');
+      }
+      console.log('AuthContext: Logout process completed');
+    } catch (error) {
+      console.error('AuthContext: Error signing out:', error);
+      throw error; // Re-throw to let the component handle it
+    }
+  };
+
   const value = {
     user,
     loading,
     profileCompleted,
     setProfileCompleted,
+    logout,
   };
 
   return (

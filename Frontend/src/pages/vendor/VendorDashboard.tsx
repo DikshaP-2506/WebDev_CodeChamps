@@ -21,7 +21,8 @@ import {
 import { fetchProductGroups } from "@/lib/productGroupApi";
 
 const VendorDashboard = () => {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("group");
   const [groupSearch, setGroupSearch] = useState("");
   const [supplierSearch, setSupplierSearch] = useState("");
@@ -54,7 +55,6 @@ const VendorDashboard = () => {
   const [showLocationModal, setShowLocationModal] = useState(false);
   const [isDetectingLocation, setIsDetectingLocation] = useState(false);
   
-  const navigate = useNavigate();
   const { toast } = useToast();
   const { processRazorpayPayment, processCODPayment, isProcessing, isLoading, error } = usePayment();
   
@@ -996,7 +996,28 @@ const VendorDashboard = () => {
                       <hr className="my-2" />
                       <button 
                         className="w-full px-4 py-2 text-left hover:bg-gray-50 flex items-center gap-3 text-red-600"
-                        onClick={() => setShowHamburgerMenu(false)}
+                        onClick={async () => {
+                          try {
+                            setShowHamburgerMenu(false);
+                            console.log('Logging out vendor...');
+                            await logout();
+                            console.log('Logout successful, navigating to home...');
+                            navigate('/');
+                            // Fallback redirect in case navigate doesn't work
+                            setTimeout(() => {
+                              if (window.location.pathname !== '/') {
+                                window.location.href = '/';
+                              }
+                            }, 100);
+                          } catch (error) {
+                            console.error('Logout error:', error);
+                            toast({
+                              title: "Logout Error",
+                              description: "Failed to logout. Please try again.",
+                              variant: "destructive"
+                            });
+                          }
+                        }}
                       >
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
