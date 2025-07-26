@@ -5,9 +5,13 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Package, Users, TrendingUp, Clock, MapPin, CheckCircle, XCircle, Plus, User, Edit, Camera, Mail, Phone, Building, Shield, Star, Calendar, Award, Truck, DollarSign, Menu, Settings, HelpCircle, LogOut, Navigation, Target, Search } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
 import { fetchProductGroups, createProductGroup, updateProductGroupStatus } from "@/lib/productGroupApi";
 
 const SupplierDashboard = () => {
+  const { logout } = useAuth();
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("group");
   const [showGroupModal, setShowGroupModal] = useState(false);
   const [newGroup, setNewGroup] = useState({ 
@@ -379,7 +383,14 @@ const SupplierDashboard = () => {
                       Help & Support
                     </button>
                     <hr className="my-2" />
-                    <button className="w-full px-4 py-2 text-left text-red-600 hover:bg-red-50 flex items-center">
+                    <button 
+                      className="w-full px-4 py-2 text-left text-red-600 hover:bg-red-50 flex items-center"
+                      onClick={async () => {
+                        setShowHamburgerMenu(false);
+                        await logout();
+                        navigate('/');
+                      }}
+                    >
                       <LogOut className="w-4 h-4 mr-3" />
                       Logout
                     </button>
