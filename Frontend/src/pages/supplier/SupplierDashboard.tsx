@@ -3,10 +3,12 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Package, Users, TrendingUp, Clock, MapPin, CheckCircle, XCircle } from "lucide-react";
+import { Package, Users, TrendingUp, Clock, MapPin, CheckCircle, XCircle, Plus } from "lucide-react";
 
 const SupplierDashboard = () => {
   const [activeTab, setActiveTab] = useState("group");
+  const [showGroupModal, setShowGroupModal] = useState(false);
+  const [newGroup, setNewGroup] = useState({ product: "", quantity: "", location: "", deadline: "" });
 
   const groupRequests = [
     {
@@ -132,6 +134,73 @@ const SupplierDashboard = () => {
           </TabsList>
 
           <TabsContent value="group" className="space-y-4">
+            <div className="flex justify-end mb-4">
+              <Button variant="vendor" onClick={() => setShowGroupModal(true)}>
+                <Plus className="w-4 h-4 mr-2" />
+                Create Product Group
+              </Button>
+            </div>
+            {showGroupModal && (
+              <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-40 z-50">
+                <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-md">
+                  <h2 className="text-xl font-semibold mb-4">Create Product Group</h2>
+                  <div className="space-y-3">
+                    <input
+                      type="text"
+                      placeholder="Product Name"
+                      value={newGroup.product}
+                      onChange={e => setNewGroup({ ...newGroup, product: e.target.value })}
+                      className="w-full border rounded px-3 py-2"
+                    />
+                    <input
+                      type="text"
+                      placeholder="Quantity (e.g. 500 kg)"
+                      value={newGroup.quantity}
+                      onChange={e => setNewGroup({ ...newGroup, quantity: e.target.value })}
+                      className="w-full border rounded px-3 py-2"
+                    />
+                    <input
+                      type="text"
+                      placeholder="Location"
+                      value={newGroup.location}
+                      onChange={e => setNewGroup({ ...newGroup, location: e.target.value })}
+                      className="w-full border rounded px-3 py-2"
+                    />
+                    <input
+                      type="text"
+                      placeholder="Deadline (e.g. 2 days)"
+                      value={newGroup.deadline}
+                      onChange={e => setNewGroup({ ...newGroup, deadline: e.target.value })}
+                      className="w-full border rounded px-3 py-2"
+                    />
+                  </div>
+                  <div className="flex justify-end gap-2 mt-4">
+                    <Button variant="outline" onClick={() => setShowGroupModal(false)}>Cancel</Button>
+                    <Button
+                      variant="vendor"
+                      onClick={() => {
+                        if (newGroup.product && newGroup.quantity && newGroup.location && newGroup.deadline) {
+                          groupRequests.unshift({
+                            id: Date.now(),
+                            product: newGroup.product,
+                            quantity: newGroup.quantity,
+                            vendors: 0,
+                            location: newGroup.location,
+                            deadline: newGroup.deadline,
+                            status: "Pending",
+                            estimatedValue: "-"
+                          });
+                          setShowGroupModal(false);
+                          setNewGroup({ product: "", quantity: "", location: "", deadline: "" });
+                        }
+                      }}
+                    >
+                      Create
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            )}
             <div className="grid gap-4">
               {groupRequests.map((request) => (
                 <Card key={request.id} className="hover:shadow-lg transition-all duration-300">
