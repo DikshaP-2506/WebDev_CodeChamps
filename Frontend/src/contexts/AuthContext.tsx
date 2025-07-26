@@ -22,25 +22,29 @@ export const useAuth = () => {
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
-  const [profileCompleted, setProfileCompleted] = useState(false);
+  const [profileCompleted, setProfileCompletedState] = useState(false);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       setUser(user);
       setLoading(false);
-      
-      // Check if user has completed profile setup
-      // This would typically check your database
-      // For now, we'll assume profile is not completed for new users
       if (user) {
-        // You can check user metadata or your database here
-        // For now, we'll set it to false to force profile setup
-        setProfileCompleted(false);
+        // Check localStorage for profile completion status
+        const completed = localStorage.getItem(`profileCompleted_${user.uid}`) === 'true';
+        setProfileCompletedState(completed);
+      } else {
+        setProfileCompletedState(false);
       }
     });
-
     return unsubscribe;
   }, []);
+
+  const setProfileCompleted = (completed: boolean) => {
+    if (user) {
+      localStorage.setItem(`profileCompleted_${user.uid}`, completed ? 'true' : 'false');
+    }
+    setProfileCompletedState(completed);
+  };
 
   const value = {
     user,

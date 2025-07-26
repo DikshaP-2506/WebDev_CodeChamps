@@ -11,6 +11,7 @@ import { Card, CardHeader, CardContent, CardTitle, CardDescription } from "@/com
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Package } from "lucide-react";
+import { useAuth } from "../../contexts/AuthContext";
 
 const SupplierAuth: React.FC = () => {
   const [isLogin, setIsLogin] = useState(true);
@@ -18,6 +19,7 @@ const SupplierAuth: React.FC = () => {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const navigate = useNavigate();
+  const { profileCompleted } = useAuth();
 
   // Google Sign-In
   const handleGoogle = async () => {
@@ -37,7 +39,12 @@ const SupplierAuth: React.FC = () => {
       } else {
         // Check if user has completed profile setup (you would check your database here)
         // For now, we'll redirect to profile setup for all users
-        navigate("/supplier/profile-setup");
+        const completed = localStorage.getItem(`profileCompleted_${user.uid}`) === 'true';
+        if (completed) {
+          navigate("/supplier/dashboard");
+        } else {
+          navigate("/supplier/profile-setup");
+        }
       }
     } catch (err: any) {
       setError(err.message);
@@ -51,9 +58,7 @@ const SupplierAuth: React.FC = () => {
     try {
       if (isLogin) {
         await signInWithEmailAndPassword(auth, email, password);
-        // For existing users, check if they have completed profile setup
-        // For now, redirect to profile setup
-        navigate("/supplier/profile-setup");
+        navigate("/supplier/dashboard");
       } else {
         // This is a new user signup
         await createUserWithEmailAndPassword(auth, email, password);
