@@ -215,62 +215,74 @@ const VendorDashboard = () => {
           </TabsContent>
 
           <TabsContent value="individual" className="space-y-4">
+            <div className="mb-6">
+              <h2 className="text-2xl font-bold mb-2">Find Suppliers</h2>
+              <p className="text-muted-foreground mb-4">Search and filter suppliers based on your needs</p>
+              <div className="flex gap-4 mb-6">
+                <div className="relative flex-1">
+                  <input
+                    type="text"
+                    placeholder="Search for materials, suppliers..."
+                    className="w-full pl-10 pr-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-vendor"
+                  />
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                </div>
+                <select className="px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-vendor">
+                  <option>All Categories</option>
+                  <option>Grains</option>
+                  <option>Spices</option>
+                  <option>Vegetables</option>
+                </select>
+                <select className="px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-vendor">
+                  <option>All Prices</option>
+                  <option>Under ₹50</option>
+                  <option>₹50-100</option>
+                  <option>Above ₹100</option>
+                </select>
+                <select className="px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-vendor">
+                  <option>Distance</option>
+                  <option>Under 2km</option>
+                  <option>2-5km</option>
+                  <option>Above 5km</option>
+                </select>
+              </div>
+            </div>
             <div className="grid gap-4">
               {supplierOffers.map((offer) => (
                 <Card key={offer.id} className="hover:shadow-lg transition-all duration-300">
                   <CardContent className="p-6">
-                    <div className="flex justify-between items-start mb-4">
-                      <div>
-                        <button 
-                          onClick={() => navigate(`/vendor/supplier/${offer.supplierId}`)}
-                          className="text-left hover:text-vendor transition-colors"
-                        >
-                          <h3 className="text-lg font-semibold hover:underline">{offer.product}</h3>
-                          <p className="text-muted-foreground">by {offer.supplier}</p>
-                        </button>
-                      </div>
-                      <Badge variant="outline">
-                        ⭐ {offer.rating}
-                      </Badge>
-                    </div>
-                    
-                    <div className="grid md:grid-cols-2 gap-4 mb-4">
-                      <div className="space-y-2">
-                        <div className="flex items-center text-sm">
-                          <Package className="w-4 h-4 mr-2 text-muted-foreground" />
-                          Min. {offer.minQty}
+                    <div className="flex justify-between items-start">
+                      <div className="flex-1">
+                        <h3 className="text-xl font-semibold mb-1">{offer.supplier}</h3>
+                        <p className="text-lg text-muted-foreground mb-3">{offer.product}</p>
+                        
+                        <div className="flex items-center gap-6 mb-4">
+                          <div className="flex items-center text-sm text-muted-foreground">
+                            <MapPin className="w-4 h-4 mr-1" />
+                            {offer.location}
+                          </div>
+                          <div className="flex items-center text-sm">
+                            <span className="text-yellow-500 mr-1">⭐</span>
+                            {offer.rating}
+                          </div>
+                          <div className="text-lg font-semibold text-vendor">
+                            {offer.pricePerKg}
+                          </div>
                         </div>
-                        <div className="flex items-center text-sm">
-                          <span className="font-medium">{offer.pricePerKg}</span>
-                          <span className="text-muted-foreground ml-1">per kg</span>
-                        </div>
+                        
+                        <Badge variant="outline" className="mb-4">
+                          {offer.product.includes('Rice') ? 'Grains' : 'Spices'}
+                        </Badge>
                       </div>
-                      <div className="space-y-2">
-                        <div className="flex items-center text-sm">
-                          <Clock className="w-4 h-4 mr-2 text-muted-foreground" />
-                          {offer.deliveryTime}
-                        </div>
-                        <div className="flex items-center text-sm">
-                          <MapPin className="w-4 h-4 mr-2 text-muted-foreground" />
-                          {offer.location}
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="mb-3">
-                      <div className="flex items-center text-sm text-muted-foreground">
-                        <MapPin className="w-4 h-4 mr-1" />
-                        <span className="text-xs">Delivery: {offer.deliveryAddress}</span>
-                      </div>
-                    </div>
-                    
-                    <div className="flex justify-end">
+                      
                       <Button 
                         variant="default" 
-                        size="sm"
+                        size="lg"
                         onClick={() => navigate(`/vendor/supplier/${offer.supplierId}`)}
+                        className="bg-black hover:bg-gray-800 text-white"
                       >
-                        View Supplier
+                        <ShoppingCart className="w-4 h-4 mr-2" />
+                        Order Now
                       </Button>
                     </div>
                   </CardContent>
