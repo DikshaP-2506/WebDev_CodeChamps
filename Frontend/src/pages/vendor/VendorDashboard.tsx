@@ -8,6 +8,8 @@ import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { usePayment } from "@/hooks/use-payment";
 import { PaymentSuccess } from "@/components/PaymentSuccess";
+import { useAuth } from "@/contexts/AuthContext";
+import { vendorApi } from "@/services/vendorApi";
 import { 
   generateOrderId, 
   formatAmount,
@@ -18,6 +20,7 @@ import {
 } from "@/lib/razorpay";
 
 const VendorDashboard = () => {
+  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState("group");
   const [groupSearch, setGroupSearch] = useState("");
   const [supplierSearch, setSupplierSearch] = useState("");
@@ -54,17 +57,84 @@ const VendorDashboard = () => {
   const { toast } = useToast();
   const { processRazorpayPayment, processCODPayment, isProcessing, isLoading, error } = usePayment();
   
-  // User details for payment prefill
+  // User details for payment prefill - will be loaded from database
   const [userDetails, setUserDetails] = useState({
-    name: "John Doe", // This would come from auth context
-    email: "john.doe@email.com",
-    phone: "+919876543210"
+    name: "",
+    email: "",
+    phone: ""
   });
+  const [vendorProfile, setVendorProfile] = useState(null);
+  const [profileLoading, setProfileLoading] = useState(true);
+  
+  // Profile edit form state
+  const [editFormData, setEditFormData] = useState({
+    fullName: "",
+    stallName: "",
+    mobileNumber: "",
+    stallType: "",
+    stallAddress: "",
+    city: "",
+    state: "",
+    pincode: "",
+    languagePreference: "",
+    preferredDeliveryTime: "",
+    rawMaterialNeeds: ""
+  });
+  const [isSavingProfile, setIsSavingProfile] = useState(false);
 
   // Auto-detect location on component mount
   useEffect(() => {
     checkLocationPermission();
   }, []);
+
+  // Fetch vendor profile data
+  useEffect(() => {
+    const fetchVendorProfile = async () => {
+      if (!user?.uid) {
+        setProfileLoading(false);
+        return;
+      }
+
+      try {
+        const response = await vendorApi.getByUserId(user.uid);
+        const profile = response.vendor;
+        setVendorProfile(profile);
+        
+        // Initialize edit form data
+        setEditFormData({
+          fullName: profile.fullName || "",
+          stallName: profile.stallName || "",
+          mobileNumber: profile.mobileNumber || "",
+          stallType: profile.stallType || "",
+          stallAddress: profile.stallAddress || "",
+          city: profile.city || "",
+          state: profile.state || "",
+          pincode: profile.pincode || "",
+          languagePreference: profile.languagePreference || "",
+          preferredDeliveryTime: profile.preferredDeliveryTime || "",
+          rawMaterialNeeds: Array.isArray(profile.rawMaterialNeeds) ? profile.rawMaterialNeeds.join(", ") : ""
+        });
+        
+        // Set user details for payment
+        setUserDetails({
+          name: profile.fullName,
+          email: user.email || "",
+          phone: profile.mobileNumber
+        });
+      } catch (error) {
+        console.error('Error fetching vendor profile:', error);
+        toast({
+          title: "Error",
+          description: "Failed to load profile data. Please refresh the page.",
+          variant: "destructive"
+        });
+      } finally {
+        setProfileLoading(false);
+      }
+    };
+
+    fetchVendorProfile();
+  }, [user, toast]);
 
   const checkLocationPermission = async () => {
     if (!navigator.geolocation) {
@@ -720,6 +790,77 @@ const VendorDashboard = () => {
     return filtered;
   };
 
+  // Handle form input changes
+  const handleFormChange = (field, value) => {
+    setEditFormData(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
+  // Save profile changes
+  const handleSaveProfile = async () => {
+    if (!vendorProfile?.id) {
+      toast({
+        title: "Error",
+        description: "Unable to save profile. Please refresh and try again.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setIsSavingProfile(true);
+
+    try {
+      // Prepare the update data
+      const updateData = {
+        fullName: editFormData.fullName,
+        stallName: editFormData.stallName,
+        mobileNumber: editFormData.mobileNumber,
+        stallType: editFormData.stallType,
+        stallAddress: editFormData.stallAddress,
+        city: editFormData.city,
+        state: editFormData.state,
+        pincode: editFormData.pincode,
+        languagePreference: editFormData.languagePreference,
+        preferredDeliveryTime: editFormData.preferredDeliveryTime,
+        rawMaterialNeeds: editFormData.rawMaterialNeeds.split(',').map(item => item.trim()).filter(item => item)
+      };
+
+      // Call the update API
+      await vendorApi.update(vendorProfile.id, updateData);
+
+      // Update the local vendor profile state
+      const updatedProfile = { ...vendorProfile, ...updateData };
+      setVendorProfile(updatedProfile);
+
+      // Update user details for payment
+      setUserDetails({
+        name: updateData.fullName,
+        email: user?.email || "",
+        phone: updateData.mobileNumber
+      });
+
+      // Close the modal
+      setShowProfileEditModal(false);
+
+      toast({
+        title: "Profile Updated",
+        description: "Your profile has been successfully updated.",
+      });
+
+    } catch (error) {
+      console.error('Error updating profile:', error);
+      toast({
+        title: "Update Failed",
+        description: "Failed to update profile. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsSavingProfile(false);
+    }
+  };
+
   const supplierOffers = [
     {
       id: 1,
@@ -821,13 +962,26 @@ const VendorDashboard = () => {
 
   return (
     <div className="min-h-screen bg-slate-50">
-      {/* Header */}
-      <div className="bg-blue-600 shadow-sm">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex justify-between items-center">
-            <div>
-              <h1 className="text-2xl font-bold text-white">MarketConnect</h1>
-            </div>
+      {/* Loading State */}
+      {profileLoading ? (
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="text-center">
+            <div className="w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+            <p className="text-gray-600">Loading your profile...</p>
+          </div>
+        </div>
+      ) : (
+        <>
+          {/* Header */}
+          <div className="bg-blue-600 shadow-sm">
+            <div className="container mx-auto px-4 py-4">
+              <div className="flex justify-between items-center">
+                <div>
+                  <h1 className="text-2xl font-bold text-white">MarketConnect</h1>
+                  {vendorProfile && (
+                    <p className="text-blue-100 text-sm">Welcome back, {vendorProfile.fullName}!</p>
+                  )}
+                </div>
             <div className="flex items-center gap-4">
               <div className="relative">
                 <button 
@@ -1718,36 +1872,100 @@ const VendorDashboard = () => {
                 <h3 className="text-lg font-semibold mb-4">Business Information</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium mb-2">Business Name</label>
-                    <input type="text" defaultValue="Kumar Enterprises" className="w-full border rounded px-3 py-2" />
+                    <label className="block text-sm font-medium mb-2">Full Name</label>
+                    <input 
+                      type="text" 
+                      value={editFormData.fullName}
+                      onChange={(e) => handleFormChange('fullName', e.target.value)}
+                      className="w-full border rounded px-3 py-2" 
+                    />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium mb-2">Business Type</label>
-                    <select className="w-full border rounded px-3 py-2">
-                      <option>Retail & Wholesale</option>
-                      <option>Retail Only</option>
-                      <option>Wholesale Only</option>
-                    </select>
+                    <label className="block text-sm font-medium mb-2">Stall Name</label>
+                    <input 
+                      type="text" 
+                      value={editFormData.stallName}
+                      onChange={(e) => handleFormChange('stallName', e.target.value)}
+                      className="w-full border rounded px-3 py-2" 
+                    />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium mb-2">GST Number</label>
-                    <input type="text" defaultValue="07AABCU9603R1ZM" className="w-full border rounded px-3 py-2" />
+                    <label className="block text-sm font-medium mb-2">Mobile Number</label>
+                    <input 
+                      type="text" 
+                      value={editFormData.mobileNumber}
+                      onChange={(e) => handleFormChange('mobileNumber', e.target.value)}
+                      className="w-full border rounded px-3 py-2" 
+                    />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium mb-2">Monthly Budget</label>
-                    <select className="w-full border rounded px-3 py-2">
-                      <option>₹50,000 - ₹1,00,000</option>
-                      <option>₹1,00,000 - ₹2,00,000</option>
-                      <option>₹2,00,000+</option>
+                    <label className="block text-sm font-medium mb-2">Stall Type</label>
+                    <select 
+                      className="w-full border rounded px-3 py-2" 
+                      value={editFormData.stallType}
+                      onChange={(e) => handleFormChange('stallType', e.target.value)}
+                    >
+                      <option value="Chaat">Chaat</option>
+                      <option value="South Indian">South Indian</option>
+                      <option value="North Indian">North Indian</option>
+                      <option value="Chinese">Chinese</option>
+                      <option value="Fast Food">Fast Food</option>
+                      <option value="Beverages">Beverages</option>
+                      <option value="Desserts">Desserts</option>
+                      <option value="Street Food">Street Food</option>
+                      <option value="Other">Other</option>
                     </select>
                   </div>
                   <div className="md:col-span-2">
-                    <label className="block text-sm font-medium mb-2">Business Address</label>
+                    <label className="block text-sm font-medium mb-2">Stall Address</label>
                     <textarea 
-                      defaultValue="123, Commercial Street, Sector 15, Mumbai, Maharashtra 400001"
+                      value={editFormData.stallAddress}
+                      onChange={(e) => handleFormChange('stallAddress', e.target.value)}
                       className="w-full border rounded px-3 py-2"
                       rows={3}
                     />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-2">City</label>
+                    <input 
+                      type="text" 
+                      value={editFormData.city}
+                      onChange={(e) => handleFormChange('city', e.target.value)}
+                      className="w-full border rounded px-3 py-2" 
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-2">State</label>
+                    <input 
+                      type="text" 
+                      value={editFormData.state}
+                      onChange={(e) => handleFormChange('state', e.target.value)}
+                      className="w-full border rounded px-3 py-2" 
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Pincode</label>
+                    <input 
+                      type="text" 
+                      value={editFormData.pincode}
+                      onChange={(e) => handleFormChange('pincode', e.target.value)}
+                      className="w-full border rounded px-3 py-2" 
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Language Preference</label>
+                    <select 
+                      className="w-full border rounded px-3 py-2" 
+                      value={editFormData.languagePreference}
+                      onChange={(e) => handleFormChange('languagePreference', e.target.value)}
+                    >
+                      <option value="Hindi">Hindi</option>
+                      <option value="Marathi">Marathi</option>
+                      <option value="English">English</option>
+                      <option value="Gujarati">Gujarati</option>
+                      <option value="Punjabi">Punjabi</option>
+                      <option value="Bengali">Bengali</option>
+                    </select>
                   </div>
                 </div>
               </div>
@@ -1758,19 +1976,19 @@ const VendorDashboard = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium mb-2">Primary Email</label>
-                    <input type="email" defaultValue="rajesh@kumarenterprises.com" className="w-full border rounded px-3 py-2" />
+                    <input type="email" defaultValue={user?.email || ""} className="w-full border rounded px-3 py-2" />
                   </div>
                   <div>
                     <label className="block text-sm font-medium mb-2">Phone Number</label>
-                    <input type="tel" defaultValue="+91 98765 43210" className="w-full border rounded px-3 py-2" />
+                    <input type="tel" defaultValue={vendorProfile?.mobileNumber || ""} className="w-full border rounded px-3 py-2" />
                   </div>
                   <div>
                     <label className="block text-sm font-medium mb-2">WhatsApp</label>
-                    <input type="tel" defaultValue="+91 98765 43210" className="w-full border rounded px-3 py-2" />
+                    <input type="tel" defaultValue={vendorProfile?.mobileNumber || ""} className="w-full border rounded px-3 py-2" />
                   </div>
                   <div>
                     <label className="block text-sm font-medium mb-2">Alternative Phone</label>
-                    <input type="tel" defaultValue="+91 99876 54321" className="w-full border rounded px-3 py-2" />
+                    <input type="tel" defaultValue="" className="w-full border rounded px-3 py-2" placeholder="Optional" />
                   </div>
                 </div>
               </div>
@@ -1781,19 +1999,29 @@ const VendorDashboard = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium mb-2">Delivery Preference</label>
-                    <select className="w-full border rounded px-3 py-2">
-                      <option>Next Day Delivery</option>
-                      <option>Same Day Delivery</option>
-                      <option>Standard Delivery</option>
+                    <select 
+                      className="w-full border rounded px-3 py-2" 
+                      value={editFormData.preferredDeliveryTime}
+                      onChange={(e) => handleFormChange('preferredDeliveryTime', e.target.value)}
+                    >
+                      <option value="Next Day Delivery">Next Day Delivery</option>
+                      <option value="Same Day Delivery">Same Day Delivery</option>
+                      <option value="Standard Delivery">Standard Delivery</option>
+                      <option value="Morning (8-12 PM)">Morning (8-12 PM)</option>
+                      <option value="Afternoon (12-6 PM)">Afternoon (12-6 PM)</option>
+                      <option value="Evening (6-10 PM)">Evening (6-10 PM)</option>
                     </select>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium mb-2">Payment Method</label>
-                    <select className="w-full border rounded px-3 py-2">
-                      <option>Bank Transfer, UPI</option>
-                      <option>Cash on Delivery</option>
-                      <option>Credit Terms</option>
-                    </select>
+                    <label className="block text-sm font-medium mb-2">Raw Material Needs</label>
+                    <input 
+                      type="text" 
+                      value={editFormData.rawMaterialNeeds}
+                      onChange={(e) => handleFormChange('rawMaterialNeeds', e.target.value)}
+                      className="w-full border rounded px-3 py-2"
+                      placeholder="Enter comma-separated values (e.g., Vegetables, Spices, Oil)"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">Enter multiple items separated by commas</p>
                   </div>
                 </div>
               </div>
@@ -1803,8 +2031,12 @@ const VendorDashboard = () => {
               <Button variant="outline" onClick={() => setShowProfileEditModal(false)}>
                 Cancel
               </Button>
-              <Button className="bg-indigo-600 hover:bg-indigo-700 text-white">
-                Save Changes
+              <Button 
+                className="bg-indigo-600 hover:bg-indigo-700 text-white"
+                onClick={handleSaveProfile}
+                disabled={isSavingProfile}
+              >
+                {isSavingProfile ? "Saving..." : "Save Changes"}
               </Button>
             </div>
           </div>
@@ -2178,6 +2410,8 @@ const VendorDashboard = () => {
             setPaymentSuccessData(null);
           }}
         />
+      )}
+        </>
       )}
     </div>
   );

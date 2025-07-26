@@ -8,7 +8,7 @@ router.post('/', async (req, res) => {
     console.log('Received supplier data:', req.body);
     
     const {
-      fullName, mobileNumber, languagePreference, businessName, businessAddress,
+      firebaseUserId, fullName, mobileNumber, languagePreference, businessName, businessAddress,
       city, pincode, state, businessType, supplyCapabilities,
       preferredDeliveryTime, latitude, longitude
     } = req.body;
@@ -28,12 +28,12 @@ router.post('/', async (req, res) => {
 
     const result = await query(
       `INSERT INTO suppliers (
-        full_name, mobile_number, language_preference, business_name, business_address,
+        firebase_user_id, full_name, mobile_number, language_preference, business_name, business_address,
         city, pincode, state, business_type, supply_capabilities,
         preferred_delivery_time, latitude, longitude
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
-        fullName, mobileNumber, languagePreference, businessName || '', businessAddress,
+        firebaseUserId || null, fullName, mobileNumber, languagePreference, businessName || '', businessAddress,
         city, pincode, state, businessType, supplyCapabilitiesJson,
         preferredDeliveryTime, latitude || '', longitude || ''
       ]
@@ -81,7 +81,10 @@ router.get('/', async (req, res) => {
       supply_capabilities: JSON.parse(supplier.supply_capabilities || '[]')
     }));
     
-    res.json(suppliers);
+    res.json({ 
+      suppliers,
+      total: suppliers.length 
+    });
   } catch (err) {
     console.error('Error fetching suppliers:', err);
     res.status(500).json({ error: 'Failed to fetch suppliers' });
@@ -106,6 +109,28 @@ router.get('/:id', async (req, res) => {
     res.json(supplier);
   } catch (err) {
     console.error('Error fetching supplier:', err);
+    res.status(500).json({ error: 'Failed to fetch supplier' });
+  }
+});
+
+// Get supplier by Firebase user ID
+router.get('/by-user/:firebaseUserId', async (req, res) => {
+  try {
+    const { firebaseUserId } = req.params;
+    const result = await query('SELECT * FROM suppliers WHERE firebase_user_id = ?', [firebaseUserId]);
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Supplier not found' });
+    }
+    
+    const supplier = {
+      ...result.rows[0],
+      supply_capabilities: JSON.parse(result.rows[0].supply_capabilities || '[]')
+    };
+    
+    res.json({ supplier });
+  } catch (err) {
+    console.error('Error fetching supplier by user ID:', err);
     res.status(500).json({ error: 'Failed to fetch supplier' });
   }
 });
