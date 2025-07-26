@@ -1,0 +1,162 @@
+// Razorpay configuration and utility functions
+import { useRazorpay } from "react-razorpay";
+
+export interface RazorpayOptions {
+  key: string;
+  amount: number;
+  currency: "INR";
+  name: string;
+  description: string;
+  order_id?: string;
+  prefill?: {
+    name?: string;
+    email?: string;
+    contact?: string;
+  };
+  theme?: {
+    color?: string;
+  };
+  handler: (response: RazorpayResponse) => void;
+  modal?: {
+    ondismiss?: () => void;
+  };
+}
+
+export interface RazorpayResponse {
+  razorpay_payment_id: string;
+  razorpay_order_id?: string;
+  razorpay_signature?: string;
+}
+
+// Razorpay configuration
+export const RAZORPAY_CONFIG = {
+  key: import.meta.env.VITE_RAZORPAY_KEY_ID || "rzp_test_1234567890", // Test key for demo
+  theme: {
+    color: "#3B82F6", // Blue theme to match your app
+  },
+  currency: "INR" as const,
+  company: "MarketConnect",
+};
+
+// Create Razorpay order options
+export const createRazorpayOptions = (
+  amount: number,
+  orderId: string,
+  description: string,
+  userDetails?: {
+    name?: string;
+    email?: string;
+    phone?: string;
+  },
+  onSuccess?: (response: RazorpayResponse) => void,
+  onDismiss?: () => void
+): RazorpayOptions => {
+  return {
+    key: RAZORPAY_CONFIG.key,
+    amount: amount * 100, // Convert to paise
+    currency: RAZORPAY_CONFIG.currency,
+    name: RAZORPAY_CONFIG.company,
+    description: description,
+    order_id: orderId,
+    prefill: {
+      name: userDetails?.name || "",
+      email: userDetails?.email || "",
+      contact: userDetails?.phone || "",
+    },
+    theme: RAZORPAY_CONFIG.theme,
+    handler: (response: RazorpayResponse) => {
+      if (onSuccess) {
+        onSuccess(response);
+      }
+    },
+    modal: {
+      ondismiss: () => {
+        if (onDismiss) {
+          onDismiss();
+        }
+      },
+    },
+  };
+};
+
+// Payment method configurations
+export const PAYMENT_METHODS = {
+  upi: {
+    name: "UPI Payment",
+    description: "Pay using UPI apps like GPay, PhonePe, Paytm",
+    icon: "smartphone",
+    available: true,
+  },
+  card: {
+    name: "Credit/Debit Card", 
+    description: "Visa, Mastercard, RuPay accepted",
+    icon: "credit-card",
+    available: true,
+  },
+  netbanking: {
+    name: "Net Banking",
+    description: "All major banks supported",
+    icon: "building",
+    available: true,
+  },
+  wallet: {
+    name: "Digital Wallets",
+    description: "Paytm, Mobikwik, Amazon Pay",
+    icon: "wallet",
+    available: true,
+  },
+  cod: {
+    name: "Cash on Delivery",
+    description: "Pay when you receive the order",
+    icon: "truck",
+    available: true, // Only for individual orders
+  },
+};
+
+// Generate order ID
+export const generateOrderId = (type: 'individual' | 'group'): string => {
+  const prefix = type === 'individual' ? 'ORD' : 'GRP';
+  const timestamp = Date.now();
+  const random = Math.floor(Math.random() * 1000);
+  return `${prefix}-${timestamp}-${random}`;
+};
+
+// Validate payment response
+export const validatePaymentResponse = (response: RazorpayResponse): boolean => {
+  return !!(response.razorpay_payment_id && 
+           (response.razorpay_order_id || response.razorpay_signature));
+};
+
+// Format amount for display
+export const formatAmount = (amount: number): string => {
+  return new Intl.NumberFormat('en-IN', {
+    style: 'currency',
+    currency: 'INR',
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(amount);
+};
+
+// Calculate delivery charges based on distance
+export const calculateDeliveryCharge = (
+  distance: number,
+  baseCharge: number = 50,
+  perKmCharge: number = 5
+): number => {
+  if (distance <= 5) return baseCharge;
+  return baseCharge + Math.ceil(distance - 5) * perKmCharge;
+};
+
+// Calculate tax (GST)
+export const calculateTax = (amount: number, taxRate: number = 0.18): number => {
+  return Math.round(amount * taxRate);
+};
+
+// Calculate group discount
+export const calculateGroupDiscount = (
+  amount: number,
+  discountPercentage: string
+): number => {
+  const discount = parseInt(discountPercentage.replace('%', ''));
+  return Math.round(amount * (discount / 100));
+};

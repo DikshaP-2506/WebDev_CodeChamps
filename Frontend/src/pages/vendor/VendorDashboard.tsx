@@ -1,15 +1,28 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Users, ShoppingCart, Package, Clock, MapPin, Filter, Search, TrendingUp, User, Edit, Camera, Mail, Phone, Building, Shield, Star, Calendar } from "lucide-react";
+import { Plus, Users, ShoppingCart, Package, Clock, MapPin, Filter, Search, TrendingUp, User, Edit, Camera, Mail, Phone, Building, Shield, Star, Calendar, Navigation, Target, Truck, CreditCard, Wallet, Smartphone, CheckCircle2, X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
+import { useRazorpay } from "react-razorpay";
+import { 
+  createRazorpayOptions, 
+  generateOrderId, 
+  validatePaymentResponse, 
+  formatAmount,
+  calculateDeliveryCharge,
+  calculateTax,
+  calculateGroupDiscount,
+  PAYMENT_METHODS,
+  type RazorpayResponse 
+} from "@/lib/razorpay";
 
 const VendorDashboard = () => {
   const [activeTab, setActiveTab] = useState("group");
   const [groupSearch, setGroupSearch] = useState("");
+  const [supplierSearch, setSupplierSearch] = useState("");
   const [showJoinModal, setShowJoinModal] = useState(false);
   const [selectedGroup, setSelectedGroup] = useState(null);
   const [joinQuantity, setJoinQuantity] = useState(0);
@@ -18,8 +31,248 @@ const VendorDashboard = () => {
   const [showGroupSuggestionsModal, setShowGroupSuggestionsModal] = useState(false);
   const [showProfileEditModal, setShowProfileEditModal] = useState(false);
   const [showHamburgerMenu, setShowHamburgerMenu] = useState(false);
+  
+  // Payment-related states
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [paymentDetails, setPaymentDetails] = useState(null);
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState("upi");
+  const [orderQuantity, setOrderQuantity] = useState(1);
+  const [isProcessingPayment, setIsProcessingPayment] = useState(false);
+  
+  // Location-based filtering states
+  const [currentLocation, setCurrentLocation] = useState(null);
+  const [locationPermission, setLocationPermission] = useState(null);
+  const [locationFilter, setLocationFilter] = useState("all"); // "all", "nearby", "custom"
+  const [supplierLocationFilter, setSupplierLocationFilter] = useState("all"); // separate filter for suppliers
+  const [customLocationRadius, setCustomLocationRadius] = useState(10); // in km
+  const [supplierRadius, setSupplierRadius] = useState(25); // separate radius for suppliers
+  const [showLocationModal, setShowLocationModal] = useState(false);
+  const [isDetectingLocation, setIsDetectingLocation] = useState(false);
+  
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { error, isLoading, Razorpay } = useRazorpay();
+  
+  // User details for payment prefill
+  const [userDetails, setUserDetails] = useState({
+    name: "John Doe", // This would come from auth context
+    email: "john.doe@email.com",
+    phone: "+919876543210"
+  });
+
+  // Auto-detect location on component mount
+  useEffect(() => {
+    checkLocationPermission();
+  }, []);
+
+  const checkLocationPermission = async () => {
+    if (!navigator.geolocation) {
+      setLocationPermission('unavailable');
+      return;
+    }
+
+    try {
+      const permission = await navigator.permissions.query({ name: 'geolocation' });
+      setLocationPermission(permission.state);
+      
+      if (permission.state === 'granted') {
+        detectCurrentLocation();
+      }
+    } catch (error) {
+      console.log('Permission API not supported, trying geolocation directly');
+      detectCurrentLocation();
+    }
+  };
+
+  const detectCurrentLocation = () => {
+    if (!navigator.geolocation) {
+      toast({
+        title: "Location not supported",
+        description: "Your browser doesn't support location services.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setIsDetectingLocation(true);
+    
+    toast({
+      title: "Detecting location...",
+      description: "Please allow location access when prompted.",
+    });
+
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const { latitude, longitude } = position.coords;
+        
+        // Set basic coordinates first
+        setCurrentLocation({ latitude, longitude, name: "Detecting address..." });
+        
+        // Get precise location name using reverse geocoding
+        try {
+          const locationName = await reverseGeocode(latitude, longitude);
+          setCurrentLocation({ 
+            latitude, 
+            longitude, 
+            name: locationName,
+            accuracy: position.coords.accuracy 
+          });
+          
+          toast({
+            title: "Location detected successfully",
+            description: `📍 ${locationName}`,
+          });
+        } catch (error) {
+          // Keep coordinates with fallback name
+          setCurrentLocation({ 
+            latitude, 
+            longitude, 
+            name: `Lat: ${latitude.toFixed(4)}, Lng: ${longitude.toFixed(4)}`,
+            accuracy: position.coords.accuracy 
+          });
+          
+          toast({
+            title: "Location detected",
+            description: "Using coordinate-based location",
+            variant: "default"
+          });
+        }
+        
+        setIsDetectingLocation(false);
+      },
+      (error) => {
+        setIsDetectingLocation(false);
+        let errorMessage = "Unable to detect location.";
+        let errorTitle = "Location Error";
+        
+        switch (error.code) {
+          case error.PERMISSION_DENIED:
+            errorTitle = "Location Access Denied";
+            errorMessage = "Please enable location permissions in your browser settings and try again.";
+            setLocationPermission('denied');
+            break;
+          case error.POSITION_UNAVAILABLE:
+            errorTitle = "Location Unavailable";
+            errorMessage = "Your location information is currently unavailable. Please try again later.";
+            break;
+          case error.TIMEOUT:
+            errorTitle = "Location Timeout";
+            errorMessage = "Location request timed out. Please check your GPS signal and try again.";
+            break;
+          default:
+            errorMessage = "An unknown error occurred while detecting location.";
+        }
+        
+        toast({
+          title: errorTitle,
+          description: errorMessage,
+          variant: "destructive"
+        });
+      },
+      {
+        enableHighAccuracy: true,    // Use GPS if available
+        timeout: 15000,              // Wait up to 15 seconds
+        maximumAge: 300000           // Cache location for 5 minutes
+      }
+    );
+  };
+
+  // Real reverse geocoding function using OpenStreetMap Nominatim API
+  const reverseGeocode = async (lat, lng) => {
+    try {
+      // Using OpenStreetMap Nominatim API (free alternative to Google Maps)
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=14&addressdetails=1`,
+        {
+          headers: {
+            'User-Agent': 'MarketConnect-App/1.0'
+          }
+        }
+      );
+      
+      if (!response.ok) {
+        throw new Error('Geocoding service unavailable');
+      }
+      
+      const data = await response.json();
+      
+      if (data && data.display_name) {
+        // Extract meaningful location components
+        const address = data.address || {};
+        
+        // Build location string with available components
+        let locationParts = [];
+        
+        if (address.suburb || address.neighbourhood) {
+          locationParts.push(address.suburb || address.neighbourhood);
+        }
+        
+        if (address.city || address.town || address.village) {
+          locationParts.push(address.city || address.town || address.village);
+        }
+        
+        if (address.state) {
+          locationParts.push(address.state);
+        }
+        
+        if (address.country) {
+          locationParts.push(address.country);
+        }
+        
+        // If we have components, join them, otherwise use display_name
+        const locationName = locationParts.length > 0 
+          ? locationParts.join(', ')
+          : data.display_name.split(',').slice(0, 3).join(',').trim();
+        
+        return locationName;
+      }
+      
+      // Fallback to coordinates if no address found
+      return `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+      
+    } catch (error) {
+      console.warn('Reverse geocoding failed:', error);
+      
+      // Fallback to a secondary service or coordinates
+      try {
+        // Try with a simpler request
+        const fallbackResponse = await fetch(
+          `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lng}&localityLanguage=en`
+        );
+        
+        if (fallbackResponse.ok) {
+          const fallbackData = await fallbackResponse.json();
+          
+          if (fallbackData.locality && fallbackData.principalSubdivision) {
+            return `${fallbackData.locality}, ${fallbackData.principalSubdivision}, ${fallbackData.countryName}`;
+          }
+          
+          if (fallbackData.city && fallbackData.principalSubdivision) {
+            return `${fallbackData.city}, ${fallbackData.principalSubdivision}, ${fallbackData.countryName}`;
+          }
+        }
+      } catch (fallbackError) {
+        console.warn('Fallback geocoding also failed:', fallbackError);
+      }
+      
+      // Final fallback to coordinates
+      return `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+    }
+  };
+
+  // Calculate distance between two coordinates (Haversine formula)
+  const calculateDistance = (lat1, lon1, lat2, lon2) => {
+    const R = 6371; // Radius of the Earth in km
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a = 
+      Math.sin(dLat/2) * Math.sin(dLat/2) +
+      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+      Math.sin(dLon/2) * Math.sin(dLon/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    const distance = R * c;
+    return distance;
+  };
 
   const handleJoinGroup = (group) => {
     setSelectedGroup(group);
@@ -34,26 +287,181 @@ const VendorDashboard = () => {
 
   const handleOrderNow = (supplier) => {
     setSelectedSupplier(supplier);
+    setOrderQuantity(1);
     setShowSupplierModal(true);
   };
 
   const handlePlaceOrder = (supplier, product) => {
-    toast({
-      title: "Order Placed!",
-      description: `You've placed an order for ${product} from ${supplier.name}`,
-    });
+    // Calculate total cost including delivery
+    const productPrice = parseFloat(supplier.price.replace('₹', '').replace('/kg', ''));
+    const distance = currentLocation ? calculateDistance(
+      currentLocation.latitude, 
+      currentLocation.longitude,
+      supplier.latitude,
+      supplier.longitude
+    ) : 0;
+    
+    const deliveryCharge = isSupplierInDeliveryRange(supplier) 
+      ? calculateDeliveryCharge(distance, supplier.deliveryCharge) 
+      : 0;
+    
+    const subtotal = productPrice * orderQuantity;
+    const tax = calculateTax(subtotal); // 18% GST
+    const total = subtotal + deliveryCharge + tax;
+
+    const paymentData = {
+      type: 'individual',
+      supplier: supplier,
+      product: product,
+      quantity: orderQuantity,
+      pricePerKg: productPrice,
+      subtotal: subtotal,
+      deliveryCharge: deliveryCharge,
+      tax: tax,
+      total: total,
+      orderId: generateOrderId('individual'),
+      timestamp: new Date().toISOString()
+    };
+
+    setPaymentDetails(paymentData);
     setShowSupplierModal(false);
+    setShowPaymentModal(true);
+  };
+
+  const handleJoinGroupPayment = (group, quantity) => {
+    const pricePerKg = parseInt(group.pricePerKg.replace('₹', ''));
+    const subtotal = quantity * pricePerKg;
+    const groupDiscount = calculateGroupDiscount(subtotal, group.discount);
+    const discountedAmount = subtotal - groupDiscount;
+    const tax = calculateTax(discountedAmount); // 18% GST
+    const total = discountedAmount + tax;
+
+    const paymentData = {
+      type: 'group',
+      group: group,
+      quantity: quantity,
+      pricePerKg: pricePerKg,
+      subtotal: subtotal,
+      groupDiscount: groupDiscount,
+      discountedAmount: discountedAmount,
+      tax: tax,
+      total: total,
+      orderId: generateOrderId('group'),
+      timestamp: new Date().toISOString()
+    };
+
+    setPaymentDetails(paymentData);
+    setShowGroupSuggestionsModal(false);
+    setShowJoinModal(false);
+    setShowPaymentModal(true);
+  };
+
+  const processPayment = async () => {
+    if (!paymentDetails) return;
+    
+    setIsProcessingPayment(true);
+    
+    try {
+      // Handle Cash on Delivery separately
+      if (selectedPaymentMethod === "cod") {
+        await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate processing
+        
+        if (paymentDetails.type === 'individual') {
+          toast({
+            title: "Order Placed Successfully! 🎉",
+            description: `COD order for ${paymentDetails.product} - ${formatAmount(paymentDetails.total)}. Pay when delivered.`,
+          });
+        } else {
+          toast({
+            title: "Order Placed Successfully! 🎉", 
+            description: `Joined ${paymentDetails.group.product} group - ${formatAmount(paymentDetails.total)}. Pay when delivered.`,
+          });
+        }
+
+        setShowPaymentModal(false);
+        setPaymentDetails(null);
+        setSelectedPaymentMethod("upi");
+        return;
+      }
+
+      // Razorpay integration for online payments
+      if (!Razorpay) {
+        toast({
+          title: "Payment Error",
+          description: "Payment service is not available. Please try again.",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      const orderDescription = paymentDetails.type === 'individual' 
+        ? `${paymentDetails.product} from ${paymentDetails.supplier.name}`
+        : `${paymentDetails.group.product} - Group Order`;
+
+      // Create Razorpay options
+      const options = createRazorpayOptions(
+        paymentDetails.total,
+        paymentDetails.orderId,
+        orderDescription,
+        userDetails,
+        (response: RazorpayResponse) => {
+          // Payment success callback
+          if (validatePaymentResponse(response)) {
+            if (paymentDetails.type === 'individual') {
+              toast({
+                title: "Payment Successful! 🎉",
+                description: `Order placed for ${paymentDetails.product} - ${formatAmount(paymentDetails.total)}`,
+              });
+            } else {
+              toast({
+                title: "Payment Successful! 🎉", 
+                description: `Joined ${paymentDetails.group.product} group - ${formatAmount(paymentDetails.total)}`,
+              });
+            }
+
+            // Here you would typically send the payment details to your backend
+            console.log('Payment successful:', response);
+            
+            setShowPaymentModal(false);
+            setPaymentDetails(null);
+            setSelectedPaymentMethod("upi");
+          } else {
+            toast({
+              title: "Payment Verification Failed",
+              description: "Please contact support if amount was deducted.",
+              variant: "destructive"
+            });
+          }
+          setIsProcessingPayment(false);
+        },
+        () => {
+          // Payment dismissed callback
+          toast({
+            title: "Payment Cancelled",
+            description: "You can try again when ready.",
+            variant: "destructive"
+          });
+          setIsProcessingPayment(false);
+        }
+      );
+
+      // Open Razorpay checkout
+      const razorpayInstance = new Razorpay(options);
+      razorpayInstance.open();
+      
+    } catch (error) {
+      console.error('Payment error:', error);
+      toast({
+        title: "Payment Failed",
+        description: "Please try again or use a different payment method.",
+        variant: "destructive"
+      });
+      setIsProcessingPayment(false);
+    }
   };
 
   const handleJoinGroupOrder = (group, quantity) => {
-    const pricePerKg = parseInt(group.pricePerKg.replace('₹', ''));
-    const totalCost = quantity * pricePerKg;
-
-    toast({
-      title: "Successfully Joined Group!",
-      description: `You've joined the ${group.product} group with ${quantity} kg for ₹${totalCost}`,
-    });
-    setShowGroupSuggestionsModal(false);
+    handleJoinGroupPayment(group, quantity);
   };
 
   const confirmJoinGroup = () => {
@@ -66,35 +474,10 @@ const VendorDashboard = () => {
       return;
     }
 
-    // Calculate total cost
-    const pricePerKg = parseInt(selectedGroup.pricePerKg.replace('₹', ''));
-    const totalCost = joinQuantity * pricePerKg;
-
-    toast({
-      title: "Successfully Joined Group!",
-      description: `You've joined the ${selectedGroup.product} group with ${joinQuantity} kg for ₹${totalCost}`,
-    });
-
-    // Update the group data (in a real app, this would be an API call)
-    const updatedGroups = groupOrders.map(group => 
-      group.id === selectedGroup.id 
-        ? { 
-            ...group, 
-            currentQty: `${parseInt(group.currentQty) + joinQuantity} kg`,
-            participants: group.participants + 1
-          }
-        : group
-    );
-    
-    // In a real app, you'd update the state here
-    // setGroupOrders(updatedGroups);
-
-    setShowJoinModal(false);
-    setSelectedGroup(null);
-    setJoinQuantity(0);
+    handleJoinGroupPayment(selectedGroup, joinQuantity);
   };
 
-  // Update groupOrders to use ISO datetime strings for deadline
+  // Update groupOrders to use ISO datetime strings for deadline and include coordinates
   const groupOrders = [
     {
       id: 1,
@@ -107,6 +490,8 @@ const VendorDashboard = () => {
       deadline: "2025-07-28T18:00:00", // Example future datetime
       location: "Sector 15",
       deliveryAddress: "Sector 15, Market Area, Near City Mall",
+      latitude: 19.0760,
+      longitude: 72.8777,
       participants: 12,
       status: "Active",
       discount: "15%",
@@ -127,6 +512,8 @@ const VendorDashboard = () => {
       deadline: "2025-07-27T15:30:00", // Example future datetime
       location: "Sector 22",
       deliveryAddress: "Sector 22, Wholesale Market, Gate No. 3",
+      latitude: 19.1197,
+      longitude: 72.9156,
       participants: 8,
       status: "Almost Full",
       discount: "10%",
@@ -134,6 +521,27 @@ const VendorDashboard = () => {
       otherGroupProducts: [
         { product: "Garlic", targetQty: "100 kg", currentQty: "65 kg", pricePerKg: "₹80", discount: "15%", participants: 4, image: "https://images.unsplash.com/photo-1553978297-833d17b3b640?auto=format&fit=crop&w=400&q=80" },
         { product: "Ginger", targetQty: "150 kg", currentQty: "90 kg", pricePerKg: "₹120", discount: "18%", participants: 7, image: "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?auto=format&fit=crop&w=400&q=80" }
+      ]
+    },
+    {
+      id: 3,
+      supplier: "City Fresh Mart",
+      supplierId: "3",
+      product: "Cucumbers",
+      targetQty: "250 kg",
+      currentQty: "180 kg",
+      pricePerKg: "₹20",
+      deadline: "2025-07-29T12:00:00",
+      location: "Sector 8",
+      deliveryAddress: "Sector 8, Central Market Complex",
+      latitude: 19.0330,
+      longitude: 72.8570,
+      participants: 6,
+      status: "Active",
+      discount: "12%",
+      image: "https://images.unsplash.com/photo-1604977042946-1eecc30f269e?auto=format&fit=crop&w=400&q=80",
+      otherGroupProducts: [
+        { product: "Bell Peppers", targetQty: "150 kg", currentQty: "95 kg", pricePerKg: "₹45", discount: "8%", participants: 5, image: "https://images.unsplash.com/photo-1563565375-f3fdfdbefa83?auto=format&fit=crop&w=400&q=80" }
       ]
     }
   ];
@@ -155,6 +563,142 @@ const VendorDashboard = () => {
     }
   };
 
+  // Filter group orders based on location and other criteria
+  const getFilteredGroupOrders = () => {
+    let filtered = groupOrders.filter(order => {
+      const now = new Date();
+      const deadline = new Date(order.deadline);
+      const isActive = deadline > now;
+      const matchesSearch = order.product.toLowerCase().includes(groupSearch.toLowerCase());
+      
+      if (!isActive || !matchesSearch) return false;
+
+      // Apply location filter
+      if (locationFilter === "nearby" && currentLocation) {
+        const distance = calculateDistance(
+          currentLocation.latitude, 
+          currentLocation.longitude,
+          order.latitude,
+          order.longitude
+        );
+        return distance <= customLocationRadius;
+      }
+
+      return true;
+    });
+
+    // Sort by distance if location is available
+    if (currentLocation && locationFilter === "nearby") {
+      filtered.sort((a, b) => {
+        const distanceA = calculateDistance(
+          currentLocation.latitude, currentLocation.longitude,
+          a.latitude, a.longitude
+        );
+        const distanceB = calculateDistance(
+          currentLocation.latitude, currentLocation.longitude,
+          b.latitude, b.longitude
+        );
+        return distanceA - distanceB;
+      });
+    }
+
+    return filtered;
+  };
+
+  // Get distance text for display
+  const getDistanceText = (order) => {
+    if (!currentLocation) return "";
+    
+    const distance = calculateDistance(
+      currentLocation.latitude, 
+      currentLocation.longitude,
+      order.latitude,
+      order.longitude
+    );
+    
+    if (distance < 1) {
+      return `${(distance * 1000).toFixed(0)}m away`;
+    } else {
+      return `${distance.toFixed(1)}km away`;
+    }
+  };
+
+  // Get distance text for suppliers
+  const getSupplierDistanceText = (supplier) => {
+    if (!currentLocation) return "";
+    
+    const distance = calculateDistance(
+      currentLocation.latitude, 
+      currentLocation.longitude,
+      supplier.latitude,
+      supplier.longitude
+    );
+    
+    if (distance < 1) {
+      return `${(distance * 1000).toFixed(0)}m away`;
+    } else {
+      return `${distance.toFixed(1)}km away`;
+    }
+  };
+
+  // Check if supplier delivers to user's location
+  const isSupplierInDeliveryRange = (supplier) => {
+    if (!currentLocation) return true; // Show all if no location
+    
+    const distance = calculateDistance(
+      currentLocation.latitude, 
+      currentLocation.longitude,
+      supplier.latitude,
+      supplier.longitude
+    );
+    
+    return distance <= supplier.deliveryRadius;
+  };
+
+  // Filter suppliers based on location and search
+  const getFilteredSuppliers = () => {
+    let filtered = suppliers.filter(supplier => {
+      const matchesSearch = supplier.product.toLowerCase().includes(supplierSearch.toLowerCase()) ||
+                           supplier.name.toLowerCase().includes(supplierSearch.toLowerCase());
+      
+      if (!matchesSearch) return false;
+
+      // Apply location filter
+      if (supplierLocationFilter === "nearby" && currentLocation) {
+        const distance = calculateDistance(
+          currentLocation.latitude, 
+          currentLocation.longitude,
+          supplier.latitude,
+          supplier.longitude
+        );
+        return distance <= supplierRadius;
+      }
+
+      if (supplierLocationFilter === "delivery" && currentLocation) {
+        return isSupplierInDeliveryRange(supplier);
+      }
+
+      return true;
+    });
+
+    // Sort by distance if location is available
+    if (currentLocation && (supplierLocationFilter === "nearby" || supplierLocationFilter === "delivery")) {
+      filtered.sort((a, b) => {
+        const distanceA = calculateDistance(
+          currentLocation.latitude, currentLocation.longitude,
+          a.latitude, a.longitude
+        );
+        const distanceB = calculateDistance(
+          currentLocation.latitude, currentLocation.longitude,
+          b.latitude, b.longitude
+        );
+        return distanceA - distanceB;
+      });
+    }
+
+    return filtered;
+  };
+
   const supplierOffers = [
     {
       id: 1,
@@ -170,7 +714,7 @@ const VendorDashboard = () => {
     }
   ];
 
-  // Example supplier data for grid layout
+  // Example supplier data for grid layout with coordinates
   const suppliers = [
     {
       id: 1,
@@ -179,9 +723,13 @@ const VendorDashboard = () => {
       product: "Rice - Grains",
       price: "₹52/kg",
       location: "Thane",
+      latitude: 19.2183,
+      longitude: 72.9781,
       verified: true,
       memberYears: 3,
       rating: 4.8,
+      deliveryRadius: 25, // km
+      deliveryCharge: 50, // ₹
       otherProducts: [
         { name: "Wheat - Grains", price: "₹45/kg", image: "https://images.unsplash.com/photo-1465101046530-73398c7f28ca?auto=format&fit=crop&w=400&q=80" },
         { name: "Barley - Grains", price: "₹38/kg", image: "https://images.unsplash.com/photo-1502741338009-cac2772e18bc?auto=format&fit=crop&w=400&q=80" },
@@ -195,9 +743,13 @@ const VendorDashboard = () => {
       product: "Rice - Grains",
       price: "₹50/kg",
       location: "Mumbai",
+      latitude: 19.0760,
+      longitude: 72.8777,
       verified: true,
       memberYears: 5,
       rating: 4.5,
+      deliveryRadius: 30,
+      deliveryCharge: 75,
       otherProducts: [
         { name: "Brown Rice", price: "₹68/kg", image: "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=400&q=80" },
         { name: "Quinoa - Grains", price: "₹180/kg", image: "https://images.unsplash.com/photo-1465101046530-73398c7f28ca?auto=format&fit=crop&w=400&q=80" },
@@ -211,9 +763,13 @@ const VendorDashboard = () => {
       product: "Turmeric - Spices",
       price: "₹200/kg",
       location: "Nashik",
+      latitude: 19.9975,
+      longitude: 73.7898,
       verified: false,
       memberYears: 2,
       rating: 4.6,
+      deliveryRadius: 40,
+      deliveryCharge: 100,
       otherProducts: [
         { name: "Cumin - Spices", price: "₹450/kg", image: "https://images.unsplash.com/photo-1502741338009-cac2772e18bc?auto=format&fit=crop&w=400&q=80" },
         { name: "Coriander - Spices", price: "₹180/kg", image: "https://images.unsplash.com/photo-1519864600265-abb23847ef2c?auto=format&fit=crop&w=400&q=80" },
@@ -227,9 +783,13 @@ const VendorDashboard = () => {
       product: "Rice - Grains",
       price: "₹48/kg",
       location: "Pune",
+      latitude: 18.5204,
+      longitude: 73.8567,
       verified: true,
       memberYears: 4,
       rating: 4.2,
+      deliveryRadius: 35,
+      deliveryCharge: 80,
       otherProducts: [
         { name: "Basmati Rice", price: "₹95/kg", image: "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=400&q=80" },
         { name: "Black Rice", price: "₹125/kg", image: "https://images.unsplash.com/photo-1465101046530-73398c7f28ca?auto=format&fit=crop&w=400&q=80" },
@@ -321,99 +881,386 @@ const VendorDashboard = () => {
             <div className="bg-blue-500 text-white rounded-lg p-6 mb-6">
               <h2 className="text-2xl font-bold mb-2">Find Suppliers</h2>
               <p className="text-blue-100 mb-4">Search and filter suppliers based on your needs</p>
-              <div className="flex gap-4 items-center">
-                <div className="relative flex-1">
+            </div>
+            
+            {/* Location Status Bar for Suppliers */}
+            <div className="bg-white rounded-lg border p-4 mb-4">
+              <div className="flex items-center justify-between flex-wrap gap-4">
+                <div className="flex items-center gap-3">
+                  <MapPin className="w-5 h-5 text-gray-500" />
+                  <div>
+                    {currentLocation ? (
+                      <div>
+                        <span className="text-sm font-medium text-blue-600">📍 Your Location:</span>
+                        <div className="mt-1">
+                          <span className="text-sm text-gray-700 font-medium">{currentLocation.name}</span>
+                          {currentLocation.accuracy && (
+                            <span className="ml-2 text-xs text-gray-500">
+                              (±{Math.round(currentLocation.accuracy)}m)
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    ) : (
+                      <span className="text-sm text-gray-500">
+                        {isDetectingLocation ? "🔍 Detecting location for delivery..." : "📍 Set location for delivery estimates"}
+                      </span>
+                    )}
+                  </div>
+                </div>
+                
+                <div className="flex items-center gap-2">
+                  {!currentLocation && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={detectCurrentLocation}
+                      disabled={isDetectingLocation}
+                      className="flex items-center gap-2"
+                    >
+                      <Navigation className="w-4 h-4" />
+                      {isDetectingLocation ? "Detecting..." : "Set My Location"}
+                    </Button>
+                  )}
+                  
+                  {currentLocation && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={detectCurrentLocation}
+                      disabled={isDetectingLocation}
+                      className="flex items-center gap-2"
+                    >
+                      <Navigation className="w-4 h-4" />
+                      {isDetectingLocation ? "Updating..." : "Update Location"}
+                    </Button>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Search and Filter Controls for Suppliers */}
+            <div className="flex gap-4 items-center flex-wrap mb-6">
+              <div className="relative flex-1 min-w-[300px]">
+                <input
+                  type="text"
+                  placeholder="Search for materials, suppliers..."
+                  value={supplierSearch}
+                  onChange={e => setSupplierSearch(e.target.value)}
+                  className="w-full pl-10 pr-4 py-3 border border-blue-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-300 text-gray-900 bg-white"
+                />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+              </div>
+              
+              <select 
+                value={supplierLocationFilter} 
+                onChange={(e) => setSupplierLocationFilter(e.target.value)}
+                className="px-3 py-3 border border-blue-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-300"
+              >
+                <option value="all">All Suppliers</option>
+                <option value="nearby" disabled={!currentLocation}>
+                  {currentLocation ? `Within ${supplierRadius}km` : "Nearby (location required)"}
+                </option>
+                <option value="delivery" disabled={!currentLocation}>
+                  {currentLocation ? "Available for Delivery" : "Delivery (location required)"}
+                </option>
+              </select>
+              
+              {(supplierLocationFilter === "nearby" || supplierLocationFilter === "delivery") && currentLocation && (
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-gray-600">
+                    {supplierLocationFilter === "nearby" ? "Search Radius:" : "Max Distance:"}
+                  </span>
                   <input
-                    type="text"
-                    placeholder="Search for materials, suppliers..."
-                    className="w-full pl-10 pr-4 py-3 border border-blue-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-300 text-gray-900 bg-white"
+                    type="range"
+                    min="5"
+                    max="100"
+                    value={supplierRadius}
+                    onChange={(e) => setSupplierRadius(parseInt(e.target.value))}
+                    className="w-20"
                   />
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                  <span className="text-sm text-gray-600 min-w-[40px]">{supplierRadius}km</span>
                 </div>
-                <Button variant="outline" className="flex items-center gap-2 text-white border-white hover:bg-blue-400">
-                  <Filter className="w-4 h-4" /> Filters
-            </Button>
-          </div>
+              )}
             </div>
+            
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-              {suppliers.map(supplier => (
-                <div key={supplier.id} className="bg-white rounded-lg shadow-sm border hover:shadow-md transition-shadow p-4">
-                  <img src={supplier.image} alt={supplier.name} className="h-40 w-full object-cover rounded-lg mb-3" />
-                  <div className="font-semibold text-lg text-gray-900">{supplier.product}</div>
-                  <div className="text-gray-600 text-sm">{supplier.name}</div>
-                  <div className="flex items-center text-xs text-gray-500 mt-1 mb-2">
-                    <span>{supplier.location}</span>
-                    {supplier.verified && <span className="ml-2 bg-green-100 text-green-700 px-2 py-0.5 rounded text-xs">Verified</span>}
+              {getFilteredSuppliers().map(supplier => {
+                const distanceText = getSupplierDistanceText(supplier);
+                const inDeliveryRange = isSupplierInDeliveryRange(supplier);
+                
+                return (
+                  <div key={supplier.id} className="bg-white rounded-lg shadow-sm border hover:shadow-md transition-shadow p-4">
+                    <img src={supplier.image} alt={supplier.name} className="h-40 w-full object-cover rounded-lg mb-3" />
+                    <div className="font-semibold text-lg text-gray-900">{supplier.product}</div>
+                    <div className="text-gray-600 text-sm">{supplier.name}</div>
+                    <div className="flex items-center text-xs text-gray-500 mt-1 mb-2">
+                      <span>{supplier.location}</span>
+                      {supplier.verified && <span className="ml-2 bg-green-100 text-green-700 px-2 py-0.5 rounded text-xs">Verified</span>}
+                    </div>
+                    
+                    {/* Location and Delivery Info */}
+                    {currentLocation && (
+                      <div className="mb-2">
+                        {distanceText && (
+                          <div className="flex items-center text-xs text-gray-500 mb-1">
+                            <MapPin className="w-3 h-3 mr-1" />
+                            <span>{distanceText}</span>
+                          </div>
+                        )}
+                        <div className="flex items-center text-xs mb-1">
+                          {inDeliveryRange ? (
+                            <span className="bg-green-100 text-green-700 px-2 py-0.5 rounded flex items-center gap-1">
+                              <Truck className="w-3 h-3" />
+                              Delivers (₹{supplier.deliveryCharge})
+                            </span>
+                          ) : (
+                            <span className="bg-red-100 text-red-700 px-2 py-0.5 rounded text-xs">
+                              Outside delivery area
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                    
+                    <div className="text-blue-600 font-bold text-lg mb-1">{supplier.price}</div>
+                    <div className="flex items-center text-xs text-gray-500 mb-3">
+                      <span>Member: {supplier.memberYears} yrs</span>
+                      <span className="ml-2">⭐ {supplier.rating}</span>
+                    </div>
+                    <button 
+                      className={`w-full py-2 rounded-lg font-medium transition-colors ${
+                        currentLocation && !inDeliveryRange 
+                          ? 'bg-gray-400 text-white cursor-not-allowed' 
+                          : 'bg-blue-600 hover:bg-blue-700 text-white'
+                      }`}
+                      onClick={() => handleOrderNow(supplier)}
+                      disabled={currentLocation && !inDeliveryRange}
+                    >
+                      {currentLocation && !inDeliveryRange ? 'No Delivery' : 'Order Now'}
+                    </button>
                   </div>
-                  <div className="text-blue-600 font-bold text-lg mb-1">{supplier.price}</div>
-                  <div className="flex items-center text-xs text-gray-500 mb-3">
-                    <span>Member: {supplier.memberYears} yrs</span>
-                    <span className="ml-2">⭐ {supplier.rating}</span>
-                  </div>
-                  <button className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg font-medium transition-colors" onClick={() => handleOrderNow(supplier)}>Order Now</button>
-                </div>
-              ))}
+                );
+              })}
             </div>
+            
+            {getFilteredSuppliers().length === 0 && (
+              <div className="text-center py-12">
+                <Package className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                <h3 className="text-lg font-semibold text-gray-600 mb-2">No Suppliers Found</h3>
+                <p className="text-gray-500 mb-4">
+                  {supplierLocationFilter === "nearby" && !currentLocation 
+                    ? "Enable location detection to find nearby suppliers."
+                    : supplierLocationFilter === "delivery" && !currentLocation
+                    ? "Set your location to see suppliers that deliver to you."
+                    : supplierSearch 
+                    ? "Try adjusting your search or location filters."
+                    : "No suppliers match your criteria."}
+                </p>
+                {(supplierLocationFilter === "nearby" || supplierLocationFilter === "delivery") && !currentLocation && (
+                  <Button
+                    variant="outline"
+                    onClick={detectCurrentLocation}
+                    disabled={isDetectingLocation}
+                    className="flex items-center gap-2 mx-auto"
+                  >
+                    <Navigation className="w-4 h-4" />
+                    {isDetectingLocation ? "Detecting..." : "Set My Location"}
+                  </Button>
+                )}
+              </div>
+            )}
           </TabsContent>
 
           <TabsContent value="group" className="space-y-4">
             <div className="bg-green-500 text-white rounded-lg p-6 mb-6">
               <h2 className="text-2xl font-bold mb-2">Group Orders</h2>
               <p className="text-green-100 mb-4">Join group orders for bulk discounts</p>
+            </div>
+            
+            {/* Location and Search Controls */}
+            <div className="space-y-4 mb-6">
+              {/* Location Status Bar */}
+                <div className="bg-white rounded-lg border p-4">
+                  <div className="flex items-center justify-between flex-wrap gap-4">
+                    <div className="flex items-center gap-3">
+                      <MapPin className="w-5 h-5 text-gray-500" />
+                      <div>
+                        {currentLocation ? (
+                          <div>
+                            <span className="text-sm font-medium text-green-600">📍 Location detected:</span>
+                            <div className="mt-1">
+                              <span className="text-sm text-gray-700 font-medium">{currentLocation.name}</span>
+                              {currentLocation.accuracy && (
+                                <span className="ml-2 text-xs text-gray-500">
+                                  (±{Math.round(currentLocation.accuracy)}m accuracy)
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        ) : (
+                          <span className="text-sm text-gray-500">
+                            {isDetectingLocation ? "🔍 Detecting precise location..." : "📍 Location not detected"}
+                          </span>
+                        )}
                       </div>
-            <div className="flex items-center mb-4">
-              <div className="relative w-full max-w-md">
-                <input
-                  type="text"
-                  placeholder="Search product groups..."
-                  value={groupSearch}
-                  onChange={e => setGroupSearch(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500"
-                />
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                        </div>
-                      </div>
+                    </div>
+                    
+                    <div className="flex items-center gap-2">
+                      {!currentLocation && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={detectCurrentLocation}
+                          disabled={isDetectingLocation}
+                          className="flex items-center gap-2"
+                        >
+                          <Navigation className="w-4 h-4" />
+                          {isDetectingLocation ? "Detecting..." : "Detect Location"}
+                        </Button>
+                      )}
+                      
+                      {currentLocation && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={detectCurrentLocation}
+                          disabled={isDetectingLocation}
+                          className="flex items-center gap-2"
+                        >
+                          <Navigation className="w-4 h-4" />
+                          {isDetectingLocation ? "Updating..." : "Update Location"}
+                        </Button>
+                      )}
+                      
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setShowLocationModal(true)}
+                        className="flex items-center gap-2"
+                      >
+                        <Target className="w-4 h-4" />
+                        Location Settings
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+
+              {/* Search and Filter Controls */}
+              <div className="flex items-center gap-4 flex-wrap">
+                <div className="relative flex-1 min-w-[300px]">
+                  <input
+                    type="text"
+                    placeholder="Search product groups..."
+                    value={groupSearch}
+                    onChange={e => setGroupSearch(e.target.value)}
+                    className="w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                  />
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                </div>
+                
+                <select 
+                  value={locationFilter} 
+                  onChange={(e) => setLocationFilter(e.target.value)}
+                  className="px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                >
+                  <option value="all">All Locations</option>
+                  <option value="nearby" disabled={!currentLocation}>
+                    {currentLocation ? `Within ${customLocationRadius}km` : "Nearby (location required)"}
+                  </option>
+                </select>
+                
+                {locationFilter === "nearby" && currentLocation && (
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-gray-600">Radius:</span>
+                    <input
+                      type="range"
+                      min="1"
+                      max="50"
+                      value={customLocationRadius}
+                      onChange={(e) => setCustomLocationRadius(parseInt(e.target.value))}
+                      className="w-20"
+                    />
+                    <span className="text-sm text-gray-600 min-w-[40px]">{customLocationRadius}km</span>
+                  </div>
+                )}
+              </div>
+            </div>
+            
             <div className="space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                {groupOrders
-                  .filter(order => {
-                    const now = new Date();
-                    const deadline = new Date(order.deadline);
-                    return deadline > now && order.product.toLowerCase().includes(groupSearch.toLowerCase());
-                  })
-                  .map((order) => {
-                    const progress = Math.min(100, Math.round((parseInt(order.currentQty) / parseInt(order.targetQty)) * 100));
-                    return (
-                      <div key={order.id} className="bg-white rounded-lg shadow-sm border hover:shadow-md transition-shadow p-4">
-                        <div className="mb-3">
-                          <div className="w-full h-32 bg-green-100 rounded-lg flex items-center justify-center mb-3">
-                            <Package className="w-12 h-12 text-green-600" />
-                          </div>
+                {getFilteredGroupOrders().map((order) => {
+                  const progress = Math.min(100, Math.round((parseInt(order.currentQty) / parseInt(order.targetQty)) * 100));
+                  const distanceText = getDistanceText(order);
+                  
+                  return (
+                    <div key={order.id} className="bg-white rounded-lg shadow-sm border hover:shadow-md transition-shadow p-4">
+                      <div className="mb-3">
+                        <div className="w-full h-32 bg-green-100 rounded-lg flex items-center justify-center mb-3">
+                          <Package className="w-12 h-12 text-green-600" />
                         </div>
-                        <div className="font-semibold text-lg text-gray-900">{order.product}</div>
-                        <div className="text-gray-600 text-sm">by {order.supplier}</div>
-                        <div className="flex items-center text-xs text-gray-500 mt-1 mb-2">
-                          <span>{order.participants} members</span>
-                          <span className="ml-2 bg-green-100 text-green-700 px-2 py-0.5 rounded text-xs">{order.discount || '15%'} OFF</span>
-                        </div>
-                        <div className="text-green-600 font-bold text-lg mb-1">{order.pricePerKg}</div>
-                        <div className="flex items-center text-xs text-gray-500 mb-3">
-                          <span>Target: {order.targetQty}</span>
-                          <span className="ml-2">Current: {order.currentQty}</span>
-                        </div>
-                        <div className="w-full h-2 bg-gray-200 rounded overflow-hidden mb-3">
-                          <div className="h-2 bg-green-500 transition-all duration-300" style={{ width: `${progress}%` }} />
-                        </div>
-                        <button 
-                          className="w-full bg-green-600 hover:bg-green-700 text-white py-2 rounded-lg font-medium transition-colors" 
-                          onClick={() => handleJoinGroupWithSuggestions(order)}
-                        >
-                          Join Group
-                        </button>
                       </div>
-                    );
-                  })}
+                      <div className="font-semibold text-lg text-gray-900">{order.product}</div>
+                      <div className="text-gray-600 text-sm">by {order.supplier}</div>
+                      <div className="flex items-center text-xs text-gray-500 mt-1 mb-2">
+                        <span>{order.participants} members</span>
+                        <span className="ml-2 bg-green-100 text-green-700 px-2 py-0.5 rounded text-xs">{order.discount || '15%'} OFF</span>
+                      </div>
+                      
+                      {/* Location Info */}
+                      <div className="flex items-center text-xs text-gray-500 mb-2">
+                        <MapPin className="w-3 h-3 mr-1" />
+                        <span>{order.location}</span>
+                        {distanceText && (
+                          <span className="ml-2 bg-blue-100 text-blue-700 px-2 py-0.5 rounded">
+                            {distanceText}
+                          </span>
+                        )}
+                      </div>
+                      
+                      <div className="text-green-600 font-bold text-lg mb-1">{order.pricePerKg}</div>
+                      <div className="flex items-center text-xs text-gray-500 mb-3">
+                        <span>Target: {order.targetQty}</span>
+                        <span className="ml-2">Current: {order.currentQty}</span>
+                      </div>
+                      <div className="w-full h-2 bg-gray-200 rounded overflow-hidden mb-3">
+                        <div className="h-2 bg-green-500 transition-all duration-300" style={{ width: `${progress}%` }} />
+                      </div>
+                      <button 
+                        className="w-full bg-green-600 hover:bg-green-700 text-white py-2 rounded-lg font-medium transition-colors" 
+                        onClick={() => handleJoinGroupWithSuggestions(order)}
+                      >
+                        Join Group
+                      </button>
+                    </div>
+                  );
+                })}
               </div>
+              
+              {getFilteredGroupOrders().length === 0 && (
+                <div className="text-center py-12">
+                  <Package className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                  <h3 className="text-lg font-semibold text-gray-600 mb-2">No Groups Found</h3>
+                  <p className="text-gray-500 mb-4">
+                    {locationFilter === "nearby" && !currentLocation 
+                      ? "Enable location detection to find nearby groups."
+                      : groupSearch 
+                      ? "Try adjusting your search or location filters."
+                      : "No active group orders match your criteria."}
+                  </p>
+                  {locationFilter === "nearby" && !currentLocation && (
+                    <Button
+                      variant="outline"
+                      onClick={detectCurrentLocation}
+                      disabled={isDetectingLocation}
+                      className="flex items-center gap-2 mx-auto"
+                    >
+                      <Navigation className="w-4 h-4" />
+                      {isDetectingLocation ? "Detecting..." : "Detect My Location"}
+                    </Button>
+                  )}
+                </div>
+              )}
             </div>
           </TabsContent>
 
@@ -493,6 +1340,20 @@ const VendorDashboard = () => {
                 </div>
               </div>
 
+              {/* Location Information */}
+              <div className="bg-blue-50 rounded-lg p-3">
+                <div className="flex items-center gap-2 mb-2">
+                  <MapPin className="w-4 h-4 text-blue-600" />
+                  <span className="text-sm font-medium text-blue-800">Delivery Location</span>
+                </div>
+                <p className="text-sm text-blue-700">{selectedGroup.deliveryAddress}</p>
+                {currentLocation && (
+                  <p className="text-xs text-blue-600 mt-1">
+                    {getDistanceText(selectedGroup)} from your location
+                  </p>
+                )}
+              </div>
+
               <div>
                 <label className="block text-sm font-medium mb-2">Your Quantity (kg)</label>
                 <input
@@ -541,11 +1402,41 @@ const VendorDashboard = () => {
             <div className="flex justify-between items-start mb-6">
               <div>
                 <h2 className="text-2xl font-semibold mb-2">Order from {selectedSupplier.name}</h2>
-                <div className="flex items-center gap-2 text-sm text-gray-600">
+                <div className="flex items-center gap-2 text-sm text-gray-600 mb-2">
                   <span>{selectedSupplier.location}</span>
                   {selectedSupplier.verified && <span className="bg-green-100 text-green-700 px-2 py-1 rounded text-xs">Verified</span>}
                   <span>⭐ {selectedSupplier.rating}</span>
                 </div>
+                
+                {/* Location and Delivery Info */}
+                {currentLocation && (
+                  <div className="bg-blue-50 rounded-lg p-3 mt-3">
+                    <div className="flex items-center gap-2 mb-2">
+                      <MapPin className="w-4 h-4 text-blue-600" />
+                      <span className="text-sm font-medium text-blue-800">Delivery Information</span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4 text-sm">
+                      <div>
+                        <span className="text-blue-700">Distance:</span>
+                        <div className="font-medium">{getSupplierDistanceText(selectedSupplier)}</div>
+                      </div>
+                      <div>
+                        <span className="text-blue-700">Delivery:</span>
+                        <div className="font-medium">
+                          {isSupplierInDeliveryRange(selectedSupplier) ? (
+                            <span className="text-green-600">Available (₹{selectedSupplier.deliveryCharge})</span>
+                          ) : (
+                            <span className="text-red-600">Outside delivery area</span>
+                          )}
+                        </div>
+                      </div>
+                      <div className="col-span-2">
+                        <span className="text-blue-700">Your Location:</span>
+                        <div className="font-medium text-xs">{currentLocation.name}</div>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
               <button 
                 onClick={() => setShowSupplierModal(false)}
@@ -558,17 +1449,58 @@ const VendorDashboard = () => {
             {/* Current Product */}
             <div className="mb-6">
               <h3 className="text-lg font-semibold mb-3">Selected Product</h3>
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 flex items-center gap-4">
-                <img src={selectedSupplier.image} alt={selectedSupplier.product} className="w-20 h-20 object-cover rounded-lg" />
-                <div className="flex-1">
-                  <div className="font-semibold text-lg">{selectedSupplier.product}</div>
-                  <div className="text-blue-600 font-bold text-xl">{selectedSupplier.price}</div>
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <div className="flex items-center gap-4 mb-4">
+                  <img src={selectedSupplier.image} alt={selectedSupplier.product} className="w-20 h-20 object-cover rounded-lg" />
+                  <div className="flex-1">
+                    <div className="font-semibold text-lg">{selectedSupplier.product}</div>
+                    <div className="text-blue-600 font-bold text-xl">{selectedSupplier.price}</div>
+                  </div>
                 </div>
+                
+                {/* Quantity and Total Calculation */}
+                <div className="bg-white rounded-lg p-4 mb-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium mb-2">Quantity (kg)</label>
+                      <input
+                        type="number"
+                        value={orderQuantity}
+                        onChange={(e) => setOrderQuantity(parseInt(e.target.value) || 1)}
+                        className="w-full border rounded px-3 py-2"
+                        min="1"
+                        max="1000"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-2">Subtotal</label>
+                      <div className="text-lg font-bold text-blue-600">
+                        ₹{(parseFloat(selectedSupplier.price.replace('₹', '').replace('/kg', '')) * orderQuantity).toFixed(2)}
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {currentLocation && isSupplierInDeliveryRange(selectedSupplier) && (
+                    <div className="mt-3 pt-3 border-t">
+                      <div className="flex justify-between text-sm">
+                        <span>Delivery Charge:</span>
+                        <span className="font-medium">₹{selectedSupplier.deliveryCharge}</span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+                
                 <button 
-                  className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-medium"
+                  className="w-full bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium"
                   onClick={() => handlePlaceOrder(selectedSupplier, selectedSupplier.product)}
                 >
-                  Place Order
+                  Proceed to Payment - ₹{(() => {
+                    const productPrice = parseFloat(selectedSupplier.price.replace('₹', '').replace('/kg', ''));
+                    const deliveryCharge = currentLocation && isSupplierInDeliveryRange(selectedSupplier) ? selectedSupplier.deliveryCharge : 0;
+                    const subtotal = productPrice * orderQuantity;
+                    const tax = Math.round(subtotal * 0.18);
+                    return (subtotal + deliveryCharge + tax).toFixed(0);
+                  })()}
                 </button>
               </div>
             </div>
@@ -852,6 +1784,470 @@ const VendorDashboard = () => {
               </Button>
               <Button className="bg-indigo-600 hover:bg-indigo-700 text-white">
                 Save Changes
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {/* Location Settings Modal */}
+      {showLocationModal && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
+          <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-md border">
+            <div className="flex justify-between items-start mb-6">
+              <h2 className="text-xl font-semibold">Location Settings</h2>
+              <button 
+                onClick={() => setShowLocationModal(false)}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="space-y-6">
+              {/* Current Location Status */}
+              <div>
+                <h3 className="text-sm font-medium text-gray-700 mb-3">Current Location</h3>
+                <div className="bg-gray-50 rounded-lg p-3">
+                  {currentLocation ? (
+                    <div>
+                      <div className="flex items-center gap-2 text-green-600 mb-2">
+                        <MapPin className="w-4 h-4" />
+                        <span className="font-medium text-sm">Current Location Detected</span>
+                      </div>
+                      <p className="text-sm text-gray-700 font-medium mb-1">{currentLocation.name}</p>
+                      <p className="text-xs text-gray-500">
+                        Coordinates: {currentLocation.latitude.toFixed(6)}, {currentLocation.longitude.toFixed(6)}
+                        {currentLocation.accuracy && (
+                          <span className="block mt-1">Accuracy: ±{Math.round(currentLocation.accuracy)} meters</span>
+                        )}
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      <MapPin className="w-4 h-4 text-gray-400" />
+                      <span className="text-sm text-gray-500">Location not detected</span>
+                    </div>
+                  )}
+                </div>
+                
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={detectCurrentLocation}
+                  disabled={isDetectingLocation}
+                  className="w-full mt-3 flex items-center justify-center gap-2"
+                >
+                  <Navigation className="w-4 h-4" />
+                  {isDetectingLocation ? "Detecting..." : "Detect Location Again"}
+                </Button>
+              </div>
+
+              {/* Location Filter Settings */}
+              <div>
+                <h3 className="text-sm font-medium text-gray-700 mb-3">Filter Preferences</h3>
+                
+                <div className="space-y-3">
+                  <label className="flex items-center gap-3">
+                    <input
+                      type="radio"
+                      name="locationFilter"
+                      value="all"
+                      checked={locationFilter === "all"}
+                      onChange={(e) => setLocationFilter(e.target.value)}
+                      className="w-4 h-4 text-green-600"
+                    />
+                    <span className="text-sm">Show all groups</span>
+                  </label>
+                  
+                  <label className="flex items-center gap-3">
+                    <input
+                      type="radio"
+                      name="locationFilter"
+                      value="nearby"
+                      checked={locationFilter === "nearby"}
+                      onChange={(e) => setLocationFilter(e.target.value)}
+                      disabled={!currentLocation}
+                      className="w-4 h-4 text-green-600 disabled:opacity-50"
+                    />
+                    <span className={`text-sm ${!currentLocation ? 'text-gray-400' : ''}`}>
+                      Show nearby groups only
+                      {!currentLocation && " (location required)"}
+                    </span>
+                  </label>
+                </div>
+                
+                {locationFilter === "nearby" && currentLocation && (
+                  <div className="mt-4 p-3 bg-green-50 rounded-lg">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Search Radius: {customLocationRadius}km
+                    </label>
+                    <input
+                      type="range"
+                      min="1"
+                      max="50"
+                      value={customLocationRadius}
+                      onChange={(e) => setCustomLocationRadius(parseInt(e.target.value))}
+                      className="w-full"
+                    />
+                    <div className="flex justify-between text-xs text-gray-500 mt-1">
+                      <span>1km</span>
+                      <span>50km</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Location Permission Status */}
+              {locationPermission === 'denied' && (
+                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                  <div className="flex items-start gap-2">
+                    <div className="w-4 h-4 bg-yellow-400 rounded-full mt-0.5"></div>
+                    <div>
+                      <p className="text-sm font-medium text-yellow-800">Location Access Denied</p>
+                      <p className="text-xs text-yellow-600 mt-1">
+                        To use location-based features, please enable location permissions in your browser settings.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+            
+            <div className="flex justify-end gap-2 mt-6">
+              <Button variant="outline" onClick={() => setShowLocationModal(false)}>
+                Cancel
+              </Button>
+              <Button 
+                onClick={() => {
+                  setShowLocationModal(false);
+                  toast({
+                    title: "Settings saved",
+                    description: "Your location preferences have been updated.",
+                  });
+                }}
+                className="bg-green-600 hover:bg-green-700 text-white"
+              >
+                Save Settings
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {/* Payment Modal */}
+      {showPaymentModal && paymentDetails && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
+          <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-2xl border max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-start mb-6">
+              <div>
+                <h2 className="text-2xl font-semibold mb-2">Complete Payment</h2>
+                <p className="text-gray-600">Order ID: {paymentDetails.orderId}</p>
+              </div>
+              <button 
+                onClick={() => setShowPaymentModal(false)}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Order Summary */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold">Order Summary</h3>
+                
+                <div className="bg-gray-50 rounded-lg p-4">
+                  {paymentDetails.type === 'individual' ? (
+                    <div>
+                      <div className="flex items-center gap-3 mb-3">
+                        <img src={paymentDetails.supplier.image} alt={paymentDetails.product} className="w-12 h-12 object-cover rounded" />
+                        <div>
+                          <div className="font-semibold">{paymentDetails.product}</div>
+                          <div className="text-sm text-gray-600">from {paymentDetails.supplier.name}</div>
+                        </div>
+                      </div>
+                      
+                      <div className="space-y-2 text-sm">
+                        <div className="flex justify-between">
+                          <span>Quantity:</span>
+                          <span>{paymentDetails.quantity} kg</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Rate:</span>
+                          <span>{formatAmount(paymentDetails.pricePerKg)}/kg</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Subtotal:</span>
+                          <span>{formatAmount(paymentDetails.subtotal)}</span>
+                        </div>
+                        {paymentDetails.deliveryCharge > 0 && (
+                          <div className="flex justify-between">
+                            <span>Delivery:</span>
+                            <span>{formatAmount(paymentDetails.deliveryCharge)}</span>
+                          </div>
+                        )}
+                        <div className="flex justify-between">
+                          <span>GST (18%):</span>
+                          <span>{formatAmount(paymentDetails.tax)}</span>
+                        </div>
+                        <div className="border-t pt-2 flex justify-between font-bold">
+                          <span>Total:</span>
+                          <span>{formatAmount(paymentDetails.total)}</span>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div>
+                      <div className="flex items-center gap-3 mb-3">
+                        <div className="w-12 h-12 bg-green-100 rounded flex items-center justify-center">
+                          <Users className="w-6 h-6 text-green-600" />
+                        </div>
+                        <div>
+                          <div className="font-semibold">{paymentDetails.group.product} (Group Order)</div>
+                          <div className="text-sm text-gray-600">from {paymentDetails.group.supplier}</div>
+                        </div>
+                      </div>
+                      
+                      <div className="space-y-2 text-sm">
+                        <div className="flex justify-between">
+                          <span>Quantity:</span>
+                          <span>{paymentDetails.quantity} kg</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Rate:</span>
+                          <span>{formatAmount(paymentDetails.pricePerKg)}/kg</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Subtotal:</span>
+                          <span>{formatAmount(paymentDetails.subtotal)}</span>
+                        </div>
+                        <div className="flex justify-between text-green-600">
+                          <span>Group Discount ({paymentDetails.group.discount}):</span>
+                          <span>-{formatAmount(paymentDetails.groupDiscount)}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>After Discount:</span>
+                          <span>{formatAmount(paymentDetails.discountedAmount)}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>GST (18%):</span>
+                          <span>{formatAmount(paymentDetails.tax)}</span>
+                        </div>
+                        <div className="border-t pt-2 flex justify-between font-bold">
+                          <span>Total:</span>
+                          <span>{formatAmount(paymentDetails.total)}</span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Delivery Information */}
+                {currentLocation && paymentDetails.type === 'individual' && (
+                  <div className="bg-blue-50 rounded-lg p-3">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Truck className="w-4 h-4 text-blue-600" />
+                      <span className="text-sm font-medium text-blue-800">Delivery Information</span>
+                    </div>
+                    <div className="text-xs text-blue-700">
+                      <div>Delivering to: {currentLocation.name}</div>
+                      <div>Distance: {getSupplierDistanceText(paymentDetails.supplier)}</div>
+                      <div>Estimated delivery: 1-2 business days</div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Payment Methods */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold">Payment Method</h3>
+                
+                <div className="space-y-3">
+                  {/* UPI Payment */}
+                  <label className="flex items-center gap-3 p-3 border rounded-lg cursor-pointer hover:bg-gray-50">
+                    <input
+                      type="radio"
+                      name="paymentMethod"
+                      value="upi"
+                      checked={selectedPaymentMethod === "upi"}
+                      onChange={(e) => setSelectedPaymentMethod(e.target.value)}
+                      className="w-4 h-4 text-blue-600"
+                    />
+                    <Smartphone className="w-5 h-5 text-green-600" />
+                    <div className="flex-1">
+                      <div className="font-medium">UPI Payment</div>
+                      <div className="text-sm text-gray-500">Pay using UPI apps like GPay, PhonePe, Paytm</div>
+                    </div>
+                  </label>
+
+                  {/* Credit/Debit Card */}
+                  <label className="flex items-center gap-3 p-3 border rounded-lg cursor-pointer hover:bg-gray-50">
+                    <input
+                      type="radio"
+                      name="paymentMethod"
+                      value="card"
+                      checked={selectedPaymentMethod === "card"}
+                      onChange={(e) => setSelectedPaymentMethod(e.target.value)}
+                      className="w-4 h-4 text-blue-600"
+                    />
+                    <CreditCard className="w-5 h-5 text-blue-600" />
+                    <div className="flex-1">
+                      <div className="font-medium">Credit/Debit Card</div>
+                      <div className="text-sm text-gray-500">Visa, Mastercard, RuPay accepted</div>
+                    </div>
+                  </label>
+
+                  {/* Net Banking */}
+                  <label className="flex items-center gap-3 p-3 border rounded-lg cursor-pointer hover:bg-gray-50">
+                    <input
+                      type="radio"
+                      name="paymentMethod"
+                      value="netbanking"
+                      checked={selectedPaymentMethod === "netbanking"}
+                      onChange={(e) => setSelectedPaymentMethod(e.target.value)}
+                      className="w-4 h-4 text-blue-600"
+                    />
+                    <Building className="w-5 h-5 text-purple-600" />
+                    <div className="flex-1">
+                      <div className="font-medium">Net Banking</div>
+                      <div className="text-sm text-gray-500">All major banks supported</div>
+                    </div>
+                  </label>
+
+                  {/* Wallet */}
+                  <label className="flex items-center gap-3 p-3 border rounded-lg cursor-pointer hover:bg-gray-50">
+                    <input
+                      type="radio"
+                      name="paymentMethod"
+                      value="wallet"
+                      checked={selectedPaymentMethod === "wallet"}
+                      onChange={(e) => setSelectedPaymentMethod(e.target.value)}
+                      className="w-4 h-4 text-blue-600"
+                    />
+                    <Wallet className="w-5 h-5 text-orange-600" />
+                    <div className="flex-1">
+                      <div className="font-medium">Digital Wallets</div>
+                      <div className="text-sm text-gray-500">Paytm, Mobikwik, Amazon Pay</div>
+                    </div>
+                  </label>
+
+                  {/* Cash on Delivery (only for individual orders) */}
+                  {paymentDetails.type === 'individual' && (
+                    <label className="flex items-center gap-3 p-3 border rounded-lg cursor-pointer hover:bg-gray-50">
+                      <input
+                        type="radio"
+                        name="paymentMethod"
+                        value="cod"
+                        checked={selectedPaymentMethod === "cod"}
+                        onChange={(e) => setSelectedPaymentMethod(e.target.value)}
+                        className="w-4 h-4 text-blue-600"
+                      />
+                      <Truck className="w-5 h-5 text-gray-600" />
+                      <div className="flex-1">
+                        <div className="font-medium">Cash on Delivery</div>
+                        <div className="text-sm text-gray-500">Pay when you receive the order</div>
+                      </div>
+                    </label>
+                  )}
+                </div>
+
+                {/* Payment Form Fields */}
+                {selectedPaymentMethod === "card" && (
+                  <div className="bg-gray-50 rounded-lg p-4 space-y-3">
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Card Number</label>
+                      <input type="text" placeholder="1234 5678 9012 3456" className="w-full border rounded px-3 py-2" />
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-sm font-medium mb-1">Expiry</label>
+                        <input type="text" placeholder="MM/YY" className="w-full border rounded px-3 py-2" />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium mb-1">CVV</label>
+                        <input type="text" placeholder="123" className="w-full border rounded px-3 py-2" />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Cardholder Name</label>
+                      <input type="text" placeholder="Full Name" className="w-full border rounded px-3 py-2" />
+                    </div>
+                  </div>
+                )}
+
+                {selectedPaymentMethod === "upi" && (
+                  <div className="bg-gray-50 rounded-lg p-4">
+                    <label className="block text-sm font-medium mb-2">UPI ID</label>
+                    <input type="text" placeholder="yourname@upi" className="w-full border rounded px-3 py-2" />
+                  </div>
+                )}
+
+                {selectedPaymentMethod === "netbanking" && (
+                  <div className="bg-gray-50 rounded-lg p-4">
+                    <label className="block text-sm font-medium mb-2">Select Bank</label>
+                    <select className="w-full border rounded px-3 py-2">
+                      <option>State Bank of India</option>
+                      <option>HDFC Bank</option>
+                      <option>ICICI Bank</option>
+                      <option>Axis Bank</option>
+                      <option>Bank of Baroda</option>
+                      <option>Punjab National Bank</option>
+                    </select>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Security Notice */}
+            <div className="mt-6 bg-green-50 border border-green-200 rounded-lg p-3">
+              <div className="flex items-center gap-2">
+                <Shield className="w-4 h-4 text-green-600" />
+                <span className="text-sm text-green-800 font-medium">Secure Payment</span>
+              </div>
+              <p className="text-xs text-green-700 mt-1">
+                Your payment information is encrypted and secure. We don't store your payment details.
+                {selectedPaymentMethod !== 'cod' && ' Powered by Razorpay.'}
+              </p>
+            </div>
+
+            {/* Razorpay Error Display */}
+            {error && (
+              <div className="mt-4 bg-red-50 border border-red-200 rounded-lg p-3">
+                <div className="flex items-center gap-2">
+                  <X className="w-4 h-4 text-red-600" />
+                  <span className="text-sm text-red-800 font-medium">Payment Service Error</span>
+                </div>
+                <p className="text-xs text-red-700 mt-1">
+                  Unable to load payment service. Please refresh the page and try again.
+                </p>
+              </div>
+            )}
+
+            {/* Action Buttons */}
+            <div className="flex justify-end gap-3 mt-6">
+              <Button variant="outline" onClick={() => setShowPaymentModal(false)}>
+                Cancel
+              </Button>
+              <Button 
+                onClick={processPayment}
+                disabled={isProcessingPayment || (selectedPaymentMethod !== 'cod' && (isLoading || error))}
+                className="bg-green-600 hover:bg-green-700 text-white px-8"
+              >
+                {isProcessingPayment ? (
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    Processing...
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4" />
+                    {selectedPaymentMethod === 'cod' 
+                      ? `Place Order ${formatAmount(paymentDetails.total)}`
+                      : `Pay ${formatAmount(paymentDetails.total)}`
+                    }
+                  </div>
+                )}
               </Button>
             </div>
           </div>
