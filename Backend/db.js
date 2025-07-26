@@ -15,6 +15,7 @@ const db = new sqlite3.Database(dbPath, (err) => {
 db.serialize(() => {
   db.run(`CREATE TABLE IF NOT EXISTS vendors (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
+    firebase_user_id TEXT,
     full_name TEXT NOT NULL,
     mobile_number TEXT NOT NULL,
     language_preference TEXT NOT NULL,
@@ -28,10 +29,27 @@ db.serialize(() => {
     preferred_delivery_time TEXT NOT NULL,
     latitude TEXT,
     longitude TEXT,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
   )`);
+
+  // Add firebase_user_id column if it doesn't exist (for existing databases)
+  db.run(`ALTER TABLE vendors ADD COLUMN firebase_user_id TEXT`, (err) => {
+    if (err && !err.message.includes('duplicate column name')) {
+      console.error('Error adding firebase_user_id column to vendors:', err.message);
+    }
+  });
+
+  // Add updated_at column if it doesn't exist (for existing databases)
+  db.run(`ALTER TABLE vendors ADD COLUMN updated_at DATETIME DEFAULT CURRENT_TIMESTAMP`, (err) => {
+    if (err && !err.message.includes('duplicate column name')) {
+      console.error('Error adding updated_at column to vendors:', err.message);
+    }
+  });
+  
   db.run(`CREATE TABLE IF NOT EXISTS suppliers (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
+    firebase_user_id TEXT,
     full_name TEXT NOT NULL,
     mobile_number TEXT NOT NULL,
     language_preference TEXT NOT NULL,
@@ -45,8 +63,47 @@ db.serialize(() => {
     preferred_delivery_time TEXT NOT NULL,
     latitude TEXT,
     longitude TEXT,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
   )`);
+
+  // Add firebase_user_id column if it doesn't exist (for existing databases)
+  db.run(`ALTER TABLE suppliers ADD COLUMN firebase_user_id TEXT`, (err) => {
+    if (err && !err.message.includes('duplicate column name')) {
+      console.error('Error adding firebase_user_id column to suppliers:', err.message);
+    }
+  });
+
+  // Add updated_at column if it doesn't exist (for existing databases)
+  db.run(`ALTER TABLE suppliers ADD COLUMN updated_at DATETIME DEFAULT CURRENT_TIMESTAMP`, (err) => {
+    if (err && !err.message.includes('duplicate column name')) {
+      console.error('Error adding updated_at column to suppliers:', err.message);
+    }
+  });
+  
+  db.run(`CREATE TABLE IF NOT EXISTS orders (
+    id TEXT PRIMARY KEY,
+    vendor_id INTEGER NOT NULL,
+    order_type TEXT DEFAULT 'individual',
+    items TEXT NOT NULL,
+    subtotal REAL DEFAULT 0,
+    tax REAL DEFAULT 0,
+    delivery_charge REAL DEFAULT 0,
+    group_discount REAL DEFAULT 0,
+    total_amount REAL NOT NULL,
+    status TEXT DEFAULT 'pending',
+    payment_status TEXT DEFAULT 'pending',
+    payment_method TEXT DEFAULT 'online',
+    payment_id TEXT,
+    delivery_address TEXT,
+    delivery_date TEXT,
+    notes TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (vendor_id) REFERENCES vendors (id)
+  )`);
+  
+  console.log('Database tables initialized successfully');
 });
 
 // Promisify database operations

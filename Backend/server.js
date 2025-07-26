@@ -9,10 +9,16 @@ const app = express();
 
 // CORS configuration
 app.use(cors({
-  origin: ['http://localhost:3000', 'http://localhost:8080'], // React dev servers
+  origin: [
+    'http://localhost:3000', 
+    'http://localhost:8080', // Vite dev server
+    'http://localhost:5173', // Alternative Vite port
+    'http://127.0.0.1:8080',
+    'http://127.0.0.1:3000'
+  ],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
 }));
 
 // Middleware

@@ -10,6 +10,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Package } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "../../contexts/AuthContext";
+import { supplierApi, ApiError } from "@/services";
 
 const SupplierProfileSetup: React.FC = () => {
   const navigate = useNavigate();
@@ -110,35 +111,23 @@ const SupplierProfileSetup: React.FC = () => {
     setLoading(true);
 
     try {
-      // Save the profile data to your database
-      const response = await fetch('http://localhost:5000/api/suppliers', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          fullName: formData.fullName,
-          mobileNumber: formData.mobileNumber,
-          languagePreference: formData.languagePreference,
-          businessName: formData.businessName,
-          businessAddress: formData.businessAddress,
-          city: formData.city,
-          pincode: formData.pincode,
-          state: formData.state,
-          businessType: formData.businessType,
-          supplyCapabilities: formData.supplyCapabilities,
-          preferredDeliveryTime: formData.preferredDeliveryTime,
-          latitude: formData.latitude,
-          longitude: formData.longitude
-        }),
+      // Save the profile data using our API service
+      const result = await supplierApi.create({
+        fullName: formData.fullName,
+        mobileNumber: formData.mobileNumber,
+        languagePreference: formData.languagePreference,
+        businessName: formData.businessName,
+        businessAddress: formData.businessAddress,
+        city: formData.city,
+        pincode: formData.pincode,
+        state: formData.state,
+        businessType: formData.businessType,
+        supplyCapabilities: formData.supplyCapabilities,
+        preferredDeliveryTime: formData.preferredDeliveryTime,
+        latitude: formData.latitude,
+        longitude: formData.longitude
       });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to save profile');
-      }
-
-      const result = await response.json();
       console.log('Supplier profile created:', result);
 
       // Set profile as completed

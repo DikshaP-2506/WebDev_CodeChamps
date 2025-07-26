@@ -10,6 +10,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { ShoppingCart } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "../../contexts/AuthContext";
+import { vendorApi, ApiError } from "@/services";
 
 const VendorProfileSetup: React.FC = () => {
   const navigate = useNavigate();
@@ -110,21 +111,18 @@ const VendorProfileSetup: React.FC = () => {
     setLoading(true);
 
     try {
-      // Send data to backend API
-      const response = await fetch('http://localhost:5000/api/vendors', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(formData),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to save profile');
+      // Get current Firebase user
+      const currentUser = auth.currentUser;
+      if (!currentUser) {
+        throw new Error("No authenticated user found");
       }
 
-      const result = await response.json();
+      // Send data to backend API using our API service
+      const dataWithUserId = {
+        ...formData,
+        firebaseUserId: currentUser.uid
+      };
+      const result = await vendorApi.create(dataWithUserId);
 
       // Set profile as completed
       setProfileCompleted(true);
@@ -140,7 +138,11 @@ const VendorProfileSetup: React.FC = () => {
       console.error('Error saving vendor profile:', error);
       toast({
         title: "Error",
-        description: error instanceof Error ? error.message : "Failed to save profile. Please try again.",
+        description: error instanceof ApiError 
+          ? error.message 
+          : error instanceof Error 
+          ? error.message 
+          : "Failed to save profile. Please try again.",
         variant: "destructive"
       });
     } finally {
