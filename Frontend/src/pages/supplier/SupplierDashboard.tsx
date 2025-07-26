@@ -451,7 +451,7 @@ const SupplierDashboard = () => {
                       {isDetectingLocation ? "Detecting..." : "Detect Location"}
                     </Button>
                   )}
-                  <Button variant="outline" onClick={() => setShowGroupModal(true)} className="text-white border-white hover:bg-blue-400">
+                  <Button variant="secondary" onClick={() => setShowGroupModal(true)} className="bg-white/20 text-white border-white/30 hover:bg-white/30 hover:text-white">
                     <Plus className="w-4 h-4 mr-2" />
                     Create Product Group
                   </Button>

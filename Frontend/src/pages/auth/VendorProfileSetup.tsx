@@ -81,13 +81,27 @@ const VendorProfileSetup: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Validation
-    if (!formData.fullName || !formData.mobileNumber || !formData.languagePreference || 
-        !formData.stallAddress || !formData.city || !formData.pincode || !formData.state || 
-        !formData.stallType || formData.rawMaterialNeeds.length === 0 || !formData.preferredDeliveryTime) {
+    // Validation with detailed missing fields
+    const requiredFields = [
+      { key: 'fullName', label: 'Full Name' },
+      { key: 'mobileNumber', label: 'Mobile Number' },
+      { key: 'languagePreference', label: 'Language Preference' },
+      { key: 'stallAddress', label: 'Stall Address' },
+      { key: 'city', label: 'City' },
+      { key: 'pincode', label: 'Pincode' },
+      { key: 'state', label: 'State' },
+      { key: 'stallType', label: 'Stall Type' },
+      { key: 'rawMaterialNeeds', label: 'Raw Material Needs', isArray: true },
+      { key: 'preferredDeliveryTime', label: 'Preferred Delivery Time' },
+    ];
+    const missing = requiredFields.filter(f => {
+      if (f.isArray) return (formData[f.key] as string[]).length === 0;
+      return !formData[f.key];
+    });
+    if (missing.length > 0) {
       toast({
         title: "Missing Information",
-        description: "Please fill all required fields.",
+        description: `Please fill: ${missing.map(f => f.label).join(", ")}`,
         variant: "destructive"
       });
       return;
