@@ -5,11 +5,60 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Plus, Users, ShoppingCart, Package, Clock, MapPin, Filter, Search } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useToast } from "@/hooks/use-toast";
 
 const VendorDashboard = () => {
   const [activeTab, setActiveTab] = useState("group");
   const [groupSearch, setGroupSearch] = useState("");
+  const [showJoinModal, setShowJoinModal] = useState(false);
+  const [selectedGroup, setSelectedGroup] = useState(null);
+  const [joinQuantity, setJoinQuantity] = useState(0);
   const navigate = useNavigate();
+  const { toast } = useToast();
+
+  const handleJoinGroup = (group) => {
+    setSelectedGroup(group);
+    setJoinQuantity(0);
+    setShowJoinModal(true);
+  };
+
+  const confirmJoinGroup = () => {
+    if (joinQuantity <= 0) {
+      toast({
+        title: "Invalid Quantity",
+        description: "Please enter a valid quantity",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Calculate total cost
+    const pricePerKg = parseInt(selectedGroup.pricePerKg.replace('₹', ''));
+    const totalCost = joinQuantity * pricePerKg;
+
+    toast({
+      title: "Successfully Joined Group!",
+      description: `You've joined the ${selectedGroup.product} group with ${joinQuantity} kg for ₹${totalCost}`,
+    });
+
+    // Update the group data (in a real app, this would be an API call)
+    const updatedGroups = groupOrders.map(group => 
+      group.id === selectedGroup.id 
+        ? { 
+            ...group, 
+            currentQty: `${parseInt(group.currentQty) + joinQuantity} kg`,
+            participants: group.participants + 1
+          }
+        : group
+    );
+    
+    // In a real app, you'd update the state here
+    // setGroupOrders(updatedGroups);
+
+    setShowJoinModal(false);
+    setSelectedGroup(null);
+    setJoinQuantity(0);
+  };
 
   const groupOrders = [
     {
@@ -204,7 +253,11 @@ const VendorDashboard = () => {
                       <div className="flex items-center text-sm text-muted-foreground">
                         <span>Area: {order.location}</span>
                       </div>
-                      <Button variant="vendor" size="sm">
+                      <Button 
+                        variant="vendor" 
+                        size="sm"
+                        onClick={() => handleJoinGroup(order)}
+                      >
                         Join Group
                       </Button>
                     </div>
@@ -292,6 +345,76 @@ const VendorDashboard = () => {
           </TabsContent>
         </Tabs>
       </div>
+      
+      {/* Join Group Modal */}
+      {showJoinModal && selectedGroup && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-40 z-50">
+          <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-md">
+            <h2 className="text-xl font-semibold mb-4">Join Group Order</h2>
+            <div className="space-y-4">
+              <div>
+                <h3 className="font-semibold text-lg">{selectedGroup.product}</h3>
+                <p className="text-muted-foreground">by {selectedGroup.supplier}</p>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                  <span className="text-muted-foreground">Price:</span>
+                  <div className="font-semibold">{selectedGroup.pricePerKg}</div>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Available:</span>
+                  <div className="font-semibold">{selectedGroup.targetQty}</div>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Current:</span>
+                  <div className="font-semibold">{selectedGroup.currentQty}</div>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Members:</span>
+                  <div className="font-semibold">{selectedGroup.participants}</div>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-2">Your Quantity (kg)</label>
+                <input
+                  type="number"
+                  value={joinQuantity}
+                  onChange={(e) => setJoinQuantity(parseInt(e.target.value) || 0)}
+                  className="w-full border rounded px-3 py-2"
+                  min="1"
+                  max={parseInt(selectedGroup.targetQty.split(' ')[0]) - parseInt(selectedGroup.currentQty.split(' ')[0])}
+                />
+              </div>
+
+              {joinQuantity > 0 && (
+                <div className="bg-gray-50 p-3 rounded">
+                  <div className="flex justify-between text-sm">
+                    <span>Total Cost:</span>
+                    <span className="font-semibold">
+                      ₹{joinQuantity * parseInt(selectedGroup.pricePerKg.replace('₹', ''))}
+                    </span>
+                  </div>
+                </div>
+              )}
+            </div>
+            
+            <div className="flex justify-end gap-2 mt-6">
+              <Button variant="outline" onClick={() => setShowJoinModal(false)}>
+                Cancel
+              </Button>
+              <Button 
+                variant="vendor" 
+                onClick={confirmJoinGroup}
+                disabled={joinQuantity <= 0}
+              >
+                Confirm Join
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
