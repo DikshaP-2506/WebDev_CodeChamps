@@ -41,9 +41,16 @@ db.serialize(() => {
   });
 
   // Add updated_at column if it doesn't exist (for existing databases)
-  db.run(`ALTER TABLE vendors ADD COLUMN updated_at DATETIME DEFAULT CURRENT_TIMESTAMP`, (err) => {
+  db.run(`ALTER TABLE vendors ADD COLUMN updated_at DATETIME`, (err) => {
     if (err && !err.message.includes('duplicate column name')) {
       console.error('Error adding updated_at column to vendors:', err.message);
+    } else if (!err) {
+      // Update existing records to set updated_at to current timestamp
+      db.run(`UPDATE vendors SET updated_at = CURRENT_TIMESTAMP WHERE updated_at IS NULL`, (updateErr) => {
+        if (updateErr) {
+          console.error('Error updating vendors updated_at timestamps:', updateErr.message);
+        }
+      });
     }
   });
   
@@ -75,9 +82,16 @@ db.serialize(() => {
   });
 
   // Add updated_at column if it doesn't exist (for existing databases)
-  db.run(`ALTER TABLE suppliers ADD COLUMN updated_at DATETIME DEFAULT CURRENT_TIMESTAMP`, (err) => {
+  db.run(`ALTER TABLE suppliers ADD COLUMN updated_at DATETIME`, (err) => {
     if (err && !err.message.includes('duplicate column name')) {
       console.error('Error adding updated_at column to suppliers:', err.message);
+    } else if (!err) {
+      // Update existing records to set updated_at to current timestamp
+      db.run(`UPDATE suppliers SET updated_at = CURRENT_TIMESTAMP WHERE updated_at IS NULL`, (updateErr) => {
+        if (updateErr) {
+          console.error('Error updating suppliers updated_at timestamps:', updateErr.message);
+        }
+      });
     }
   });
   
@@ -104,6 +118,29 @@ db.serialize(() => {
   )`);
   
   console.log('Database tables initialized successfully');
+  
+  // Create triggers to automatically update the updated_at column
+  db.run(`CREATE TRIGGER IF NOT EXISTS vendors_updated_at_trigger 
+    AFTER UPDATE ON vendors 
+    FOR EACH ROW 
+    BEGIN 
+      UPDATE vendors SET updated_at = CURRENT_TIMESTAMP WHERE id = NEW.id; 
+    END`, (err) => {
+    if (err) {
+      console.error('Error creating vendors updated_at trigger:', err.message);
+    }
+  });
+  
+  db.run(`CREATE TRIGGER IF NOT EXISTS suppliers_updated_at_trigger 
+    AFTER UPDATE ON suppliers 
+    FOR EACH ROW 
+    BEGIN 
+      UPDATE suppliers SET updated_at = CURRENT_TIMESTAMP WHERE id = NEW.id; 
+    END`, (err) => {
+    if (err) {
+      console.error('Error creating suppliers updated_at trigger:', err.message);
+    }
+  });
 });
 
 // Promisify database operations
