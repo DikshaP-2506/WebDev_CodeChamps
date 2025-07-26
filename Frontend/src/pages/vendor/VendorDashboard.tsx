@@ -13,6 +13,9 @@ const VendorDashboard = () => {
   const [showJoinModal, setShowJoinModal] = useState(false);
   const [selectedGroup, setSelectedGroup] = useState(null);
   const [joinQuantity, setJoinQuantity] = useState(0);
+  const [showSupplierModal, setShowSupplierModal] = useState(false);
+  const [selectedSupplier, setSelectedSupplier] = useState(null);
+  const [showGroupSuggestionsModal, setShowGroupSuggestionsModal] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -20,6 +23,19 @@ const VendorDashboard = () => {
     setSelectedGroup(group);
     setJoinQuantity(0);
     setShowJoinModal(true);
+  };
+
+  const handleOrderNow = (supplier) => {
+    setSelectedSupplier(supplier);
+    setShowSupplierModal(true);
+  };
+
+  const handlePlaceOrder = (supplier, product) => {
+    toast({
+      title: "Order Placed!",
+      description: `You've placed an order for ${product} from ${supplier.name}`,
+    });
+    setShowSupplierModal(false);
   };
 
   const confirmJoinGroup = () => {
@@ -138,6 +154,11 @@ const VendorDashboard = () => {
       verified: true,
       memberYears: 3,
       rating: 4.8,
+      otherProducts: [
+        { name: "Wheat - Grains", price: "₹45/kg", image: "https://images.unsplash.com/photo-1465101046530-73398c7f28ca?auto=format&fit=crop&w=400&q=80" },
+        { name: "Barley - Grains", price: "₹38/kg", image: "https://images.unsplash.com/photo-1502741338009-cac2772e18bc?auto=format&fit=crop&w=400&q=80" },
+        { name: "Oats - Grains", price: "₹65/kg", image: "https://images.unsplash.com/photo-1519864600265-abb23847ef2c?auto=format&fit=crop&w=400&q=80" }
+      ]
     },
     {
       id: 2,
@@ -149,6 +170,11 @@ const VendorDashboard = () => {
       verified: true,
       memberYears: 5,
       rating: 4.5,
+      otherProducts: [
+        { name: "Brown Rice", price: "₹68/kg", image: "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=400&q=80" },
+        { name: "Quinoa - Grains", price: "₹180/kg", image: "https://images.unsplash.com/photo-1465101046530-73398c7f28ca?auto=format&fit=crop&w=400&q=80" },
+        { name: "Millet - Grains", price: "₹75/kg", image: "https://images.unsplash.com/photo-1502741338009-cac2772e18bc?auto=format&fit=crop&w=400&q=80" }
+      ]
     },
     {
       id: 3,
@@ -160,6 +186,11 @@ const VendorDashboard = () => {
       verified: false,
       memberYears: 2,
       rating: 4.6,
+      otherProducts: [
+        { name: "Cumin - Spices", price: "₹450/kg", image: "https://images.unsplash.com/photo-1502741338009-cac2772e18bc?auto=format&fit=crop&w=400&q=80" },
+        { name: "Coriander - Spices", price: "₹180/kg", image: "https://images.unsplash.com/photo-1519864600265-abb23847ef2c?auto=format&fit=crop&w=400&q=80" },
+        { name: "Red Chili - Spices", price: "₹320/kg", image: "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=400&q=80" }
+      ]
     },
     {
       id: 4,
@@ -171,6 +202,11 @@ const VendorDashboard = () => {
       verified: true,
       memberYears: 4,
       rating: 4.2,
+      otherProducts: [
+        { name: "Basmati Rice", price: "₹95/kg", image: "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=400&q=80" },
+        { name: "Black Rice", price: "₹125/kg", image: "https://images.unsplash.com/photo-1465101046530-73398c7f28ca?auto=format&fit=crop&w=400&q=80" },
+        { name: "Broken Rice", price: "₹35/kg", image: "https://images.unsplash.com/photo-1502741338009-cac2772e18bc?auto=format&fit=crop&w=400&q=80" }
+      ]
     },
   ];
 
@@ -239,7 +275,7 @@ const VendorDashboard = () => {
                     <span>Member: {supplier.memberYears} yrs</span>
                     <span className="ml-2">⭐ {supplier.rating}</span>
                   </div>
-                  <button className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg font-medium transition-colors">Order Now</button>
+                  <button className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg font-medium transition-colors" onClick={() => handleOrderNow(supplier)}>Order Now</button>
                 </div>
               ))}
             </div>
@@ -418,6 +454,98 @@ const VendorDashboard = () => {
               >
                 Confirm Join
               </Button>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {/* Supplier Order Modal */}
+      {showSupplierModal && selectedSupplier && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
+          <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-4xl border max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-start mb-6">
+              <div>
+                <h2 className="text-2xl font-semibold mb-2">Order from {selectedSupplier.name}</h2>
+                <div className="flex items-center gap-2 text-sm text-gray-600">
+                  <span>{selectedSupplier.location}</span>
+                  {selectedSupplier.verified && <span className="bg-green-100 text-green-700 px-2 py-1 rounded text-xs">Verified</span>}
+                  <span>⭐ {selectedSupplier.rating}</span>
+                </div>
+              </div>
+              <button 
+                onClick={() => setShowSupplierModal(false)}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Current Product */}
+            <div className="mb-6">
+              <h3 className="text-lg font-semibold mb-3">Selected Product</h3>
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 flex items-center gap-4">
+                <img src={selectedSupplier.image} alt={selectedSupplier.product} className="w-20 h-20 object-cover rounded-lg" />
+                <div className="flex-1">
+                  <div className="font-semibold text-lg">{selectedSupplier.product}</div>
+                  <div className="text-blue-600 font-bold text-xl">{selectedSupplier.price}</div>
+                </div>
+                <button 
+                  className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-medium"
+                  onClick={() => handlePlaceOrder(selectedSupplier, selectedSupplier.product)}
+                >
+                  Place Order
+                </button>
+              </div>
+            </div>
+
+            {/* Other Products from Same Supplier */}
+            <div className="mb-6">
+              <h3 className="text-lg font-semibold mb-3">More from {selectedSupplier.name}</h3>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {selectedSupplier.otherProducts.map((product, index) => (
+                  <div key={index} className="bg-white border rounded-lg p-4 hover:shadow-md transition-shadow">
+                    <img src={product.image} alt={product.name} className="w-full h-32 object-cover rounded-lg mb-3" />
+                    <div className="font-semibold">{product.name}</div>
+                    <div className="text-blue-600 font-bold mb-2">{product.price}</div>
+                    <button 
+                      className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg font-medium transition-colors"
+                      onClick={() => handlePlaceOrder(selectedSupplier, product.name)}
+                    >
+                      Add to Order
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Similar Suppliers */}
+            <div>
+              <h3 className="text-lg font-semibold mb-3">Similar Suppliers</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {suppliers
+                  .filter(supplier => supplier.id !== selectedSupplier.id && 
+                    (supplier.product.includes(selectedSupplier.product.split(' ')[0]) || 
+                     selectedSupplier.product.includes(supplier.product.split(' ')[0])))
+                  .slice(0, 2)
+                  .map((supplier) => (
+                    <div key={supplier.id} className="bg-gray-50 border rounded-lg p-4 flex items-center gap-4">
+                      <img src={supplier.image} alt={supplier.product} className="w-16 h-16 object-cover rounded-lg" />
+                      <div className="flex-1">
+                        <div className="font-semibold">{supplier.name}</div>
+                        <div className="text-sm text-gray-600">{supplier.product}</div>
+                        <div className="text-blue-600 font-bold">{supplier.price}</div>
+                      </div>
+                      <button 
+                        className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg font-medium"
+                        onClick={() => {
+                          setSelectedSupplier(supplier);
+                        }}
+                      >
+                        View
+                      </button>
+                    </div>
+                  ))}
+              </div>
             </div>
           </div>
         </div>
