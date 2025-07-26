@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Package, Users, TrendingUp, Clock, MapPin, CheckCircle, XCircle, Plus, User, Edit, Camera, Mail, Phone, Building, Shield, Star, Calendar, Award, Truck, DollarSign, Menu, Settings, HelpCircle, LogOut, Navigation, Target, Search } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { fetchProductGroups, createProductGroup, updateProductGroupStatus } from "@/lib/productGroupApi";
 
 const SupplierDashboard = () => {
   const [activeTab, setActiveTab] = useState("group");
@@ -12,6 +13,7 @@ const SupplierDashboard = () => {
   const [newGroup, setNewGroup] = useState({ 
     product: "", 
     quantity: "", 
+    price: "",
     location: "", 
     deadline: "", 
     deadlineTime: "",
@@ -30,10 +32,28 @@ const SupplierDashboard = () => {
   const [groupSearch, setGroupSearch] = useState("");
   
   const { toast } = useToast();
+  const [groupRequests, setGroupRequests] = useState<any[]>([]);
 
   // Auto-detect location on component mount
   useEffect(() => {
     checkLocationPermission();
+  }, []);
+
+  // Fetch product groups from backend
+  useEffect(() => {
+    const loadGroups = async () => {
+      try {
+        const groups = await fetchProductGroups();
+        setGroupRequests(groups);
+      } catch (err) {
+        toast({
+          title: "Error",
+          description: "Failed to fetch product groups.",
+          variant: "destructive"
+        });
+      }
+    };
+    loadGroups();
   }, []);
 
   const checkLocationPermission = async () => {
@@ -286,45 +306,6 @@ const SupplierDashboard = () => {
     }
   };
 
-  const groupRequests = [
-    {
-      id: 1,
-      product: "Tomatoes",
-      quantity: "500 kg",
-      vendors: 12,
-      location: "Sector 15",
-      latitude: 19.0760,
-      longitude: 72.8777,
-      deadline: "2025-07-28T18:00:00",
-      status: "Pending",
-      estimatedValue: "₹12,500"
-    },
-    {
-      id: 2,
-      product: "Onions", 
-      quantity: "300 kg",
-      vendors: 8,
-      location: "Sector 22",
-      latitude: 19.1197,
-      longitude: 72.9156,
-      deadline: "2025-07-27T15:30:00",
-      status: "Pending",
-      estimatedValue: "₹5,400"
-    },
-    {
-      id: 3,
-      product: "Potatoes",
-      quantity: "400 kg", 
-      vendors: 15,
-      location: "Sector 8",
-      latitude: 19.0330,
-      longitude: 72.8570,
-      deadline: "2025-07-29T14:00:00",
-      status: "Pending",
-      estimatedValue: "₹9,200"
-    }
-  ];
-
   // Filter group requests based on search
   const getFilteredGroupRequests = () => {
     return groupRequests.filter(request => 
@@ -515,10 +496,34 @@ const SupplierDashboard = () => {
                     <span>Due {formatDeadline(request.deadline)}</span>
                   </div>
                   <div className="flex gap-1 mb-2">
-                    <button className="flex-1 bg-red-50 hover:bg-red-100 text-red-600 py-1.5 rounded text-xs font-medium transition-colors">
+                    <button
+                      className="flex-1 bg-red-50 hover:bg-red-100 text-red-600 py-1.5 rounded text-xs font-medium transition-colors"
+                      onClick={async () => {
+                        try {
+                          await updateProductGroupStatus(request.id, 'declined');
+                          const groups = await fetchProductGroups();
+                          setGroupRequests(groups);
+                          toast({ title: 'Declined', description: 'Group request declined.' });
+                        } catch (err) {
+                          toast({ title: 'Error', description: 'Failed to decline group.', variant: 'destructive' });
+                        }
+                      }}
+                    >
                       Decline
                     </button>
-                    <button className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-1.5 rounded text-xs font-medium transition-colors">
+                    <button
+                      className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-1.5 rounded text-xs font-medium transition-colors"
+                      onClick={async () => {
+                        try {
+                          await updateProductGroupStatus(request.id, 'accepted');
+                          const groups = await fetchProductGroups();
+                          setGroupRequests(groups);
+                          toast({ title: 'Accepted', description: 'Group request accepted.' });
+                        } catch (err) {
+                          toast({ title: 'Error', description: 'Failed to accept group.', variant: 'destructive' });
+                        }
+                      }}
+                    >
                       Accept
                     </button>
                   </div>
@@ -616,7 +621,19 @@ const SupplierDashboard = () => {
                     <Clock className="w-3 h-3 mr-1" />
                     <span>Deliver {order.deliveryDate}</span>
                   </div>
-                  <button className="w-full bg-purple-600 hover:bg-purple-700 text-white py-2 rounded-lg font-medium transition-colors">
+                  <button
+                    className="w-full bg-purple-600 hover:bg-purple-700 text-white py-2 rounded-lg font-medium transition-colors"
+                    onClick={async () => {
+                      try {
+                        await updateProductGroupStatus(order.id, 'delivered');
+                        const groups = await fetchProductGroups();
+                        setGroupRequests(groups);
+                        toast({ title: 'Delivered', description: 'Order marked as delivered.' });
+                      } catch (err) {
+                        toast({ title: 'Error', description: 'Failed to mark as delivered.', variant: 'destructive' });
+                      }
+                    }}
+                  >
                     Mark as Delivered
                   </button>
                 </div>
@@ -871,6 +888,17 @@ const SupplierDashboard = () => {
               </div>
               
               <div>
+                <label className="block text-sm font-medium mb-2">Price *</label>
+                <input
+                  type="text"
+                  placeholder="e.g., 25/kg"
+                  value={newGroup.price}
+                  onChange={e => setNewGroup({ ...newGroup, price: e.target.value })}
+                  className="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+              
+              <div>
                 <label className="block text-sm font-medium mb-2">Delivery Location *</label>
                 <div className="space-y-2">
                   <input
@@ -954,25 +982,45 @@ const SupplierDashboard = () => {
               </Button>
               <Button
                 className="bg-blue-600 hover:bg-blue-700 text-white"
-                onClick={() => {
-                  if (newGroup.product && newGroup.quantity && newGroup.location && newGroup.deadline && newGroup.deadlineTime) {
+                onClick={async () => {
+                  if (newGroup.product && newGroup.quantity && newGroup.price && newGroup.location && newGroup.deadline && newGroup.deadlineTime) {
                     const deadlineDateTime = `${newGroup.deadline}T${newGroup.deadlineTime}`;
-                    
-                    toast({
-                      title: "Product Group Created!",
-                      description: `${newGroup.product} group created for ${newGroup.location}`,
-                    });
-                    
-                    setShowGroupModal(false);
-                    setNewGroup({ 
-                      product: "", 
-                      quantity: "", 
-                      location: autoFillLocation && currentLocation ? currentLocation.name : "", 
-                      deadline: "", 
-                      deadlineTime: "",
-                      latitude: autoFillLocation && currentLocation ? currentLocation.latitude.toString() : "",
-                      longitude: autoFillLocation && currentLocation ? currentLocation.longitude.toString() : ""
-                    });
+                    try {
+                      await createProductGroup({
+                        product: newGroup.product,
+                        quantity: newGroup.quantity,
+                        price: newGroup.price,
+                        location: newGroup.location,
+                        deadline: deadlineDateTime,
+                        created_by: 1,
+                        latitude: newGroup.latitude,
+                        longitude: newGroup.longitude
+                      });
+                      // Refetch groups after creation
+                      const groups = await fetchProductGroups();
+                      setGroupRequests(groups);
+                      toast({
+                        title: "Product Group Created!",
+                        description: `${newGroup.product} group created for ${newGroup.location}`,
+                      });
+                      setShowGroupModal(false);
+                      setNewGroup({ 
+                        product: "", 
+                        quantity: "", 
+                        price: "",
+                        location: autoFillLocation && currentLocation ? currentLocation.name : "", 
+                        deadline: "", 
+                        deadlineTime: "",
+                        latitude: autoFillLocation && currentLocation ? currentLocation.latitude.toString() : "",
+                        longitude: autoFillLocation && currentLocation ? currentLocation.longitude.toString() : ""
+                      });
+                    } catch (err) {
+                      toast({
+                        title: "Error",
+                        description: "Failed to create product group.",
+                        variant: "destructive"
+                      });
+                    }
                   } else {
                     toast({
                       title: "Missing Information",
@@ -981,7 +1029,7 @@ const SupplierDashboard = () => {
                     });
                   }
                 }}
-                disabled={!newGroup.product || !newGroup.quantity || !newGroup.location || !newGroup.deadline || !newGroup.deadlineTime}
+                disabled={!newGroup.product || !newGroup.quantity || !newGroup.price || !newGroup.location || !newGroup.deadline || !newGroup.deadlineTime}
               >
                 Create Group
               </Button>

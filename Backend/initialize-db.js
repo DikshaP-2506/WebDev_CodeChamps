@@ -55,6 +55,28 @@ const initializeDatabase = () => {
       }
     });
 
+    // Create product_groups table
+    db.run(`CREATE TABLE IF NOT EXISTS product_groups (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      product TEXT NOT NULL,
+      quantity TEXT NOT NULL,
+      price TEXT,
+      location TEXT NOT NULL,
+      deadline DATETIME NOT NULL,
+      status TEXT NOT NULL DEFAULT 'pending',
+      created_by INTEGER NOT NULL,
+      latitude TEXT,
+      longitude TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (created_by) REFERENCES suppliers(id)
+    )`, (err) => {
+      if (err) {
+        console.error('Error creating product_groups table:', err);
+      } else {
+        console.log('Product groups table created successfully (or already exists)');
+      }
+    });
+
     // Add sample vendor data (optional)
     db.get("SELECT COUNT(*) as count FROM vendors", (err, row) => {
       if (err) {

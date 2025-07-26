@@ -3,6 +3,7 @@ const cors = require('cors');
 const path = require('path');
 const vendorRoutes = require('./routes/vendor');
 const supplierRoutes = require('./routes/supplier');
+const productGroupRoutes = require('./routes/productGroup');
 
 const app = express();
 
@@ -30,6 +31,7 @@ app.use((req, res, next) => {
 // Routes
 app.use('/api/vendors', vendorRoutes);
 app.use('/api/suppliers', supplierRoutes);
+app.use('/api/product-groups', productGroupRoutes);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
