@@ -8,7 +8,30 @@ import { Package, Users, TrendingUp, Clock, MapPin, CheckCircle, XCircle, Plus }
 const SupplierDashboard = () => {
   const [activeTab, setActiveTab] = useState("group");
   const [showGroupModal, setShowGroupModal] = useState(false);
-  const [newGroup, setNewGroup] = useState({ product: "", quantity: "", location: "", deadline: "" });
+  const [newGroup, setNewGroup] = useState({ 
+    product: "", 
+    quantity: "", 
+    location: "", 
+    deadline: "", 
+    deadlineTime: "" 
+  });
+
+  // Helper function to format deadline for display
+  const formatDeadline = (deadlineString: string) => {
+    const deadline = new Date(deadlineString);
+    const now = new Date();
+    const diffTime = deadline.getTime() - now.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    const diffHours = Math.ceil((diffTime % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+    
+    if (diffDays > 0) {
+      return `${diffDays} day${diffDays > 1 ? 's' : ''} left`;
+    } else if (diffHours > 0) {
+      return `${diffHours} hour${diffHours > 1 ? 's' : ''} left`;
+    } else {
+      return "Expired";
+    }
+  };
 
   const groupRequests = [
     {
@@ -17,7 +40,7 @@ const SupplierDashboard = () => {
       quantity: "500 kg",
       vendors: 12,
       location: "Sector 15",
-      deadline: "Tomorrow",
+      deadline: "2025-07-28T18:00:00",
       status: "Pending",
       estimatedValue: "₹12,500"
     },
@@ -27,7 +50,7 @@ const SupplierDashboard = () => {
       quantity: "300 kg",
       vendors: 8,
       location: "Sector 22",
-      deadline: "2 days",
+      deadline: "2025-07-27T15:30:00",
       status: "Pending",
       estimatedValue: "₹5,400"
     }
@@ -168,9 +191,15 @@ const SupplierDashboard = () => {
                     />
                     <input
                       type="text"
-                      placeholder="Deadline (e.g. 2 days)"
+                      placeholder="Deadline Date (YYYY-MM-DD)"
                       value={newGroup.deadline}
-                      onChange={e => setNewGroup({ ...newGroup, deadline: e.target.value })}
+                      onChange={e => setNewGroup({...newGroup, deadline: e.target.value})}
+                      className="w-full border rounded px-3 py-2"
+                    />
+                    <input
+                      type="time"
+                      value={newGroup.deadlineTime}
+                      onChange={e => setNewGroup({...newGroup, deadlineTime: e.target.value})}
                       className="w-full border rounded px-3 py-2"
                     />
                   </div>
@@ -179,19 +208,20 @@ const SupplierDashboard = () => {
                     <Button
                       variant="vendor"
                       onClick={() => {
-                        if (newGroup.product && newGroup.quantity && newGroup.location && newGroup.deadline) {
+                        if (newGroup.product && newGroup.quantity && newGroup.location && newGroup.deadline && newGroup.deadlineTime) {
+                          const deadlineDateTime = `${newGroup.deadline}T${newGroup.deadlineTime}`;
                           groupRequests.unshift({
                             id: Date.now(),
                             product: newGroup.product,
                             quantity: newGroup.quantity,
                             vendors: 0,
                             location: newGroup.location,
-                            deadline: newGroup.deadline,
+                            deadline: deadlineDateTime,
                             status: "Pending",
                             estimatedValue: "-"
                           });
                           setShowGroupModal(false);
-                          setNewGroup({ product: "", quantity: "", location: "", deadline: "" });
+                          setNewGroup({ product: "", quantity: "", location: "", deadline: "", deadlineTime: "" });
                         }
                       }}
                     >
@@ -229,7 +259,7 @@ const SupplierDashboard = () => {
                       <div className="space-y-2">
                         <div className="flex items-center text-sm">
                           <Clock className="w-4 h-4 mr-2 text-muted-foreground" />
-                          Due {request.deadline}
+                          Due {formatDeadline(request.deadline)}
                         </div>
                         <div className="flex items-center text-sm">
                           <MapPin className="w-4 h-4 mr-2 text-muted-foreground" />

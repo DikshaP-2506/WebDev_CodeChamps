@@ -60,6 +60,7 @@ const VendorDashboard = () => {
     setJoinQuantity(0);
   };
 
+  // Update groupOrders to use ISO datetime strings for deadline
   const groupOrders = [
     {
       id: 1,
@@ -69,7 +70,7 @@ const VendorDashboard = () => {
       targetQty: "500 kg",
       currentQty: "320 kg",
       pricePerKg: "₹25",
-      deadline: "2 days left",
+      deadline: "2025-07-28T18:00:00", // Example future datetime
       location: "Sector 15",
       deliveryAddress: "Sector 15, Market Area, Near City Mall",
       participants: 12,
@@ -83,13 +84,30 @@ const VendorDashboard = () => {
       targetQty: "300 kg",
       currentQty: "280 kg",
       pricePerKg: "₹18",
-      deadline: "1 day left",
+      deadline: "2025-07-27T15:30:00", // Example future datetime
       location: "Sector 22",
       deliveryAddress: "Sector 22, Wholesale Market, Gate No. 3",
       participants: 8,
       status: "Almost Full"
     }
   ];
+
+  // Helper function to format deadline for display
+  const formatDeadline = (deadlineString: string) => {
+    const deadline = new Date(deadlineString);
+    const now = new Date();
+    const diffTime = deadline.getTime() - now.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    const diffHours = Math.ceil((diffTime % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+    
+    if (diffDays > 0) {
+      return `${diffDays} day${diffDays > 1 ? 's' : ''} left`;
+    } else if (diffHours > 0) {
+      return `${diffHours} hour${diffHours > 1 ? 's' : ''} left`;
+    } else {
+      return "Expired";
+    }
+  };
 
   const supplierOffers = [
     {
@@ -200,7 +218,12 @@ const VendorDashboard = () => {
             </div>
             <div className="grid gap-4">
               {groupOrders
-                .filter(order => order.product.toLowerCase().includes(groupSearch.toLowerCase()))
+                .filter(order => {
+                  // Only show if deadline is in the future
+                  const now = new Date();
+                  const deadline = new Date(order.deadline);
+                  return deadline > now && order.product.toLowerCase().includes(groupSearch.toLowerCase());
+                })
                 .map((order) => (
                 <Card key={order.id} className="hover:shadow-lg transition-all duration-300">
                   <CardContent className="p-6">
@@ -237,7 +260,7 @@ const VendorDashboard = () => {
                         </div>
                         <div className="flex items-center text-sm">
                           <Clock className="w-4 h-4 mr-2 text-muted-foreground" />
-                          {order.deadline}
+                          {formatDeadline(order.deadline)}
                         </div>
                       </div>
                     </div>
