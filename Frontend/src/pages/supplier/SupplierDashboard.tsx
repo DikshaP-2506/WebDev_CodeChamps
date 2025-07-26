@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Package, Users, TrendingUp, Clock, MapPin, CheckCircle, XCircle, Plus, User, Edit, Camera, Mail, Phone, Building, Shield, Star, Calendar, Award, Truck, DollarSign, Menu, Settings, HelpCircle, LogOut } from "lucide-react";
+import { Package, Users, TrendingUp, Clock, MapPin, CheckCircle, XCircle, Plus, User, Edit, Camera, Mail, Phone, Building, Shield, Star, Calendar, Award, Truck, DollarSign, Menu, Settings, HelpCircle, LogOut, Navigation, Target, Search } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 const SupplierDashboard = () => {
   const [activeTab, setActiveTab] = useState("group");
@@ -13,10 +14,260 @@ const SupplierDashboard = () => {
     quantity: "", 
     location: "", 
     deadline: "", 
-    deadlineTime: "" 
+    deadlineTime: "",
+    latitude: "",
+    longitude: ""
   });
   const [showProfileEditModal, setShowProfileEditModal] = useState(false);
   const [showHamburgerMenu, setShowHamburgerMenu] = useState(false);
+  
+  // Location-based functionality states
+  const [currentLocation, setCurrentLocation] = useState(null);
+  const [locationPermission, setLocationPermission] = useState(null);
+  const [isDetectingLocation, setIsDetectingLocation] = useState(false);
+  const [showLocationModal, setShowLocationModal] = useState(false);
+  const [autoFillLocation, setAutoFillLocation] = useState(true);
+  const [groupSearch, setGroupSearch] = useState("");
+  
+  const { toast } = useToast();
+
+  // Auto-detect location on component mount
+  useEffect(() => {
+    checkLocationPermission();
+  }, []);
+
+  const checkLocationPermission = async () => {
+    if (!navigator.geolocation) {
+      setLocationPermission('unavailable');
+      return;
+    }
+
+    try {
+      const permission = await navigator.permissions.query({ name: 'geolocation' });
+      setLocationPermission(permission.state);
+      
+      if (permission.state === 'granted') {
+        detectCurrentLocation();
+      }
+    } catch (error) {
+      console.log('Permission API not supported, trying geolocation directly');
+      detectCurrentLocation();
+    }
+  };
+
+  const detectCurrentLocation = () => {
+    if (!navigator.geolocation) {
+      toast({
+        title: "Location not supported",
+        description: "Your browser doesn't support location services.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setIsDetectingLocation(true);
+    
+    toast({
+      title: "Detecting location...",
+      description: "Please allow location access when prompted.",
+    });
+
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const { latitude, longitude } = position.coords;
+        
+        // Set basic coordinates first
+        setCurrentLocation({ latitude, longitude, name: "Detecting address..." });
+        
+        // Get precise location name using reverse geocoding
+        try {
+          const locationName = await reverseGeocode(latitude, longitude);
+          setCurrentLocation({ 
+            latitude, 
+            longitude, 
+            name: locationName,
+            accuracy: position.coords.accuracy 
+          });
+          
+          // Auto-fill location in new group form if enabled
+          if (autoFillLocation && showGroupModal) {
+            setNewGroup(prev => ({
+              ...prev,
+              location: locationName,
+              latitude: latitude.toString(),
+              longitude: longitude.toString()
+            }));
+          }
+          
+          toast({
+            title: "Location detected successfully",
+            description: `📍 ${locationName}`,
+          });
+        } catch (error) {
+          // Keep coordinates with fallback name
+          const coords = `Lat: ${latitude.toFixed(4)}, Lng: ${longitude.toFixed(4)}`;
+          setCurrentLocation({ 
+            latitude, 
+            longitude, 
+            name: coords,
+            accuracy: position.coords.accuracy 
+          });
+          
+          if (autoFillLocation && showGroupModal) {
+            setNewGroup(prev => ({
+              ...prev,
+              location: coords,
+              latitude: latitude.toString(),
+              longitude: longitude.toString()
+            }));
+          }
+          
+          toast({
+            title: "Location detected",
+            description: "Using coordinate-based location",
+            variant: "default"
+          });
+        }
+        
+        setIsDetectingLocation(false);
+      },
+      (error) => {
+        setIsDetectingLocation(false);
+        let errorMessage = "Unable to detect location.";
+        let errorTitle = "Location Error";
+        
+        switch (error.code) {
+          case error.PERMISSION_DENIED:
+            errorTitle = "Location Access Denied";
+            errorMessage = "Please enable location permissions in your browser settings and try again.";
+            setLocationPermission('denied');
+            break;
+          case error.POSITION_UNAVAILABLE:
+            errorTitle = "Location Unavailable";
+            errorMessage = "Your location information is currently unavailable. Please try again later.";
+            break;
+          case error.TIMEOUT:
+            errorTitle = "Location Timeout";
+            errorMessage = "Location request timed out. Please check your GPS signal and try again.";
+            break;
+          default:
+            errorMessage = "An unknown error occurred while detecting location.";
+        }
+        
+        toast({
+          title: errorTitle,
+          description: errorMessage,
+          variant: "destructive"
+        });
+      },
+      {
+        enableHighAccuracy: true,    // Use GPS if available
+        timeout: 15000,              // Wait up to 15 seconds
+        maximumAge: 300000           // Cache location for 5 minutes
+      }
+    );
+  };
+
+  // Real reverse geocoding function using OpenStreetMap Nominatim API
+  const reverseGeocode = async (lat, lng) => {
+    try {
+      // Using OpenStreetMap Nominatim API (free alternative to Google Maps)
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=14&addressdetails=1`,
+        {
+          headers: {
+            'User-Agent': 'MarketConnect-App/1.0'
+          }
+        }
+      );
+      
+      if (!response.ok) {
+        throw new Error('Geocoding service unavailable');
+      }
+      
+      const data = await response.json();
+      
+      if (data && data.display_name) {
+        // Extract meaningful location components
+        const address = data.address || {};
+        
+        // Build location string with available components
+        let locationParts = [];
+        
+        if (address.suburb || address.neighbourhood) {
+          locationParts.push(address.suburb || address.neighbourhood);
+        }
+        
+        if (address.city || address.town || address.village) {
+          locationParts.push(address.city || address.town || address.village);
+        }
+        
+        if (address.state) {
+          locationParts.push(address.state);
+        }
+        
+        if (address.country) {
+          locationParts.push(address.country);
+        }
+        
+        // If we have components, join them, otherwise use display_name
+        const locationName = locationParts.length > 0 
+          ? locationParts.join(', ')
+          : data.display_name.split(',').slice(0, 3).join(',').trim();
+        
+        return locationName;
+      }
+      
+      // Fallback to coordinates if no address found
+      return `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+      
+    } catch (error) {
+      console.warn('Reverse geocoding failed:', error);
+      
+      // Fallback to a secondary service or coordinates
+      try {
+        // Try with a simpler request
+        const fallbackResponse = await fetch(
+          `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lng}&localityLanguage=en`
+        );
+        
+        if (fallbackResponse.ok) {
+          const fallbackData = await fallbackResponse.json();
+          
+          if (fallbackData.locality && fallbackData.principalSubdivision) {
+            return `${fallbackData.locality}, ${fallbackData.principalSubdivision}, ${fallbackData.countryName}`;
+          }
+          
+          if (fallbackData.city && fallbackData.principalSubdivision) {
+            return `${fallbackData.city}, ${fallbackData.principalSubdivision}, ${fallbackData.countryName}`;
+          }
+        }
+      } catch (fallbackError) {
+        console.warn('Fallback geocoding also failed:', fallbackError);
+      }
+      
+      // Final fallback to coordinates
+      return `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+    }
+  };
+
+  const handleUseCurrentLocation = () => {
+    if (currentLocation) {
+      setNewGroup(prev => ({
+        ...prev,
+        location: currentLocation.name,
+        latitude: currentLocation.latitude.toString(),
+        longitude: currentLocation.longitude.toString()
+      }));
+      
+      toast({
+        title: "Location set",
+        description: "Current location added to group details.",
+      });
+    } else {
+      detectCurrentLocation();
+    }
+  };
 
   // Helper function to format deadline for display
   const formatDeadline = (deadlineString: string) => {
@@ -42,6 +293,8 @@ const SupplierDashboard = () => {
       quantity: "500 kg",
       vendors: 12,
       location: "Sector 15",
+      latitude: 19.0760,
+      longitude: 72.8777,
       deadline: "2025-07-28T18:00:00",
       status: "Pending",
       estimatedValue: "₹12,500"
@@ -52,11 +305,33 @@ const SupplierDashboard = () => {
       quantity: "300 kg",
       vendors: 8,
       location: "Sector 22",
+      latitude: 19.1197,
+      longitude: 72.9156,
       deadline: "2025-07-27T15:30:00",
       status: "Pending",
       estimatedValue: "₹5,400"
+    },
+    {
+      id: 3,
+      product: "Potatoes",
+      quantity: "400 kg", 
+      vendors: 15,
+      location: "Sector 8",
+      latitude: 19.0330,
+      longitude: 72.8570,
+      deadline: "2025-07-29T14:00:00",
+      status: "Pending",
+      estimatedValue: "₹9,200"
     }
   ];
+
+  // Filter group requests based on search
+  const getFilteredGroupRequests = () => {
+    return groupRequests.filter(request => 
+      request.product.toLowerCase().includes(groupSearch.toLowerCase()) ||
+      request.location.toLowerCase().includes(groupSearch.toLowerCase())
+    );
+  };
 
   const individualOrders = [
     {
@@ -150,83 +425,68 @@ const SupplierDashboard = () => {
             <div className="bg-blue-500 text-white rounded-lg p-6 mb-6">
               <h2 className="text-2xl font-bold mb-2">Group Order Requests</h2>
               <p className="text-blue-100 mb-4">Manage incoming group order requests from vendors</p>
-              <div className="flex justify-end">
-                <Button variant="outline" onClick={() => setShowGroupModal(true)} className="text-white border-white hover:bg-blue-400">
-                  <Plus className="w-4 h-4 mr-2" />
-                  Create Product Group
+              <div className="flex justify-between items-center flex-wrap gap-4">
+                <div className="flex items-center gap-3">
+                  <MapPin className="w-5 h-5 text-blue-100" />
+                  {currentLocation ? (
+                    <span className="text-blue-100 text-sm">
+                      Current location: {currentLocation.name}
+                    </span>
+                  ) : (
+                    <span className="text-blue-200 text-sm">
+                      {isDetectingLocation ? "Detecting location..." : "No location detected"}
+                    </span>
+                  )}
+                </div>
+                <div className="flex gap-2">
+                  {!currentLocation && (
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={detectCurrentLocation}
+                      disabled={isDetectingLocation}
+                      className="text-white border-white hover:bg-blue-400"
+                    >
+                      <Navigation className="w-4 h-4 mr-2" />
+                      {isDetectingLocation ? "Detecting..." : "Detect Location"}
+                    </Button>
+                  )}
+                  <Button variant="secondary" onClick={() => setShowGroupModal(true)} className="bg-white/20 text-white border-white/30 hover:bg-white/30 hover:text-white">
+                    <Plus className="w-4 h-4 mr-2" />
+                    Create Product Group
+                  </Button>
+                </div>
+              </div>
+            </div>
+
+            {/* Search and Filter Controls */}
+            <div className="bg-white rounded-lg border p-4 mb-6">
+              <div className="flex items-center gap-4 flex-wrap">
+                <div className="relative flex-1 min-w-[300px]">
+                  <input
+                    type="text"
+                    placeholder="Search group requests..."
+                    value={groupSearch}
+                    onChange={e => setGroupSearch(e.target.value)}
+                    className="w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  />
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                </div>
+                
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowLocationModal(true)}
+                  className="flex items-center gap-2"
+                >
+                  <Target className="w-4 h-4" />
+                  Location Settings
                 </Button>
               </div>
             </div>
-            {showGroupModal && (
-              <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-40 z-50">
-                <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-md">
-                  <h2 className="text-xl font-semibold mb-4">Create Product Group</h2>
-                  <div className="space-y-3">
-                    <input
-                      type="text"
-                      placeholder="Product Name"
-                      value={newGroup.product}
-                      onChange={e => setNewGroup({ ...newGroup, product: e.target.value })}
-                      className="w-full border rounded px-3 py-2"
-                    />
-                    <input
-                      type="text"
-                      placeholder="Quantity (e.g. 500 kg)"
-                      value={newGroup.quantity}
-                      onChange={e => setNewGroup({ ...newGroup, quantity: e.target.value })}
-                      className="w-full border rounded px-3 py-2"
-                    />
-                    <input
-                      type="text"
-                      placeholder="Location"
-                      value={newGroup.location}
-                      onChange={e => setNewGroup({ ...newGroup, location: e.target.value })}
-                      className="w-full border rounded px-3 py-2"
-                    />
-                    <input
-                      type="text"
-                      placeholder="Deadline Date (YYYY-MM-DD)"
-                      value={newGroup.deadline}
-                      onChange={e => setNewGroup({...newGroup, deadline: e.target.value})}
-                      className="w-full border rounded px-3 py-2"
-                    />
-                    <input
-                      type="time"
-                      value={newGroup.deadlineTime}
-                      onChange={e => setNewGroup({...newGroup, deadlineTime: e.target.value})}
-                      className="w-full border rounded px-3 py-2"
-                    />
-                  </div>
-                  <div className="flex justify-end gap-2 mt-4">
-                    <Button variant="outline" onClick={() => setShowGroupModal(false)}>Cancel</Button>
-                    <Button
-                      className="bg-blue-600 hover:bg-blue-700 text-white"
-                      onClick={() => {
-                        if (newGroup.product && newGroup.quantity && newGroup.location && newGroup.deadline && newGroup.deadlineTime) {
-                          const deadlineDateTime = `${newGroup.deadline}T${newGroup.deadlineTime}`;
-                          groupRequests.unshift({
-                            id: Date.now(),
-                            product: newGroup.product,
-                            quantity: newGroup.quantity,
-                            vendors: 0,
-                            location: newGroup.location,
-                            deadline: deadlineDateTime,
-                            status: "Pending",
-                            estimatedValue: "-"
-                          });
-                          setShowGroupModal(false);
-                          setNewGroup({ product: "", quantity: "", location: "", deadline: "", deadlineTime: "" });
-                        }
-                      }}
-                    >
-                      Create
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            )}
+            
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-              {groupRequests.map((request) => (
+              {getFilteredGroupRequests().map((request) => (
                 <div key={request.id} className="bg-white rounded-lg shadow-sm border hover:shadow-md transition-shadow p-4">
                   <div className="mb-3">
                     <div className="w-full h-32 bg-blue-100 rounded-lg flex items-center justify-center mb-3">
@@ -239,6 +499,13 @@ const SupplierDashboard = () => {
                     <span>{request.vendors} vendors</span>
                     <span className="ml-2 bg-blue-100 text-blue-700 px-2 py-0.5 rounded text-xs">{request.status}</span>
                   </div>
+                  
+                  {/* Location Info */}
+                  <div className="flex items-center text-xs text-gray-500 mb-2">
+                    <MapPin className="w-3 h-3 mr-1" />
+                    <span>{request.location}</span>
+                  </div>
+                  
                   <div className="text-blue-600 font-bold text-lg mb-1">{request.estimatedValue}</div>
                   <div className="flex items-center text-xs text-gray-500 mb-2">
                     <span>Qty: {request.quantity}</span>
@@ -258,6 +525,26 @@ const SupplierDashboard = () => {
                 </div>
               ))}
             </div>
+            
+            {getFilteredGroupRequests().length === 0 && (
+              <div className="text-center py-12">
+                <Package className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                <h3 className="text-lg font-semibold text-gray-600 mb-2">No Group Requests Found</h3>
+                <p className="text-gray-500 mb-4">
+                  {groupSearch 
+                    ? "No requests match your search criteria."
+                    : "Create your first product group to start receiving requests from vendors."}
+                </p>
+                <Button
+                  variant="outline"
+                  onClick={() => setShowGroupModal(true)}
+                  className="flex items-center gap-2 mx-auto"
+                >
+                  <Plus className="w-4 h-4" />
+                  Create Product Group
+                </Button>
+              </div>
+            )}
           </TabsContent>
 
           <TabsContent value="individual" className="space-y-4">
@@ -276,6 +563,7 @@ const SupplierDashboard = () => {
                   <div className="font-semibold text-lg text-gray-900">{order.product}</div>
                   <div className="text-gray-600 text-sm">by {order.vendor}</div>
                   <div className="flex items-center text-xs text-gray-500 mt-1 mb-2">
+                    <MapPin className="w-3 h-3 mr-1" />
                     <span>{order.location}</span>
                     <span className="ml-2 bg-green-100 text-green-700 px-2 py-0.5 rounded text-xs">{order.status}</span>
                   </div>
@@ -539,6 +827,269 @@ const SupplierDashboard = () => {
               </Button>
               <Button className="bg-indigo-600 hover:bg-indigo-700 text-white">
                 Save Changes
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {/* Enhanced Create Product Group Modal */}
+      {showGroupModal && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
+          <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-lg border">
+            <div className="flex justify-between items-start mb-6">
+              <h2 className="text-xl font-semibold">Create Product Group</h2>
+              <button 
+                onClick={() => setShowGroupModal(false)}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium mb-2">Product Name *</label>
+                <input
+                  type="text"
+                  placeholder="e.g., Fresh Tomatoes"
+                  value={newGroup.product}
+                  onChange={e => setNewGroup({ ...newGroup, product: e.target.value })}
+                  className="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium mb-2">Quantity *</label>
+                <input
+                  type="text"
+                  placeholder="e.g., 500 kg"
+                  value={newGroup.quantity}
+                  onChange={e => setNewGroup({ ...newGroup, quantity: e.target.value })}
+                  className="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium mb-2">Delivery Location *</label>
+                <div className="space-y-2">
+                  <input
+                    type="text"
+                    placeholder="Enter delivery location"
+                    value={newGroup.location}
+                    onChange={e => setNewGroup({ ...newGroup, location: e.target.value })}
+                    className="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                  {currentLocation && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={handleUseCurrentLocation}
+                      className="w-full flex items-center justify-center gap-2"
+                    >
+                      <MapPin className="w-4 h-4" />
+                      Use Current Location ({currentLocation.name})
+                    </Button>
+                  )}
+                  {!currentLocation && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={detectCurrentLocation}
+                      disabled={isDetectingLocation}
+                      className="w-full flex items-center justify-center gap-2"
+                    >
+                      <Navigation className="w-4 h-4" />
+                      {isDetectingLocation ? "Detecting Location..." : "Auto-Detect Location"}
+                    </Button>
+                  )}
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium mb-2">Deadline Date *</label>
+                  <input
+                    type="date"
+                    value={newGroup.deadline}
+                    onChange={e => setNewGroup({...newGroup, deadline: e.target.value})}
+                    className="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-2">Deadline Time *</label>
+                  <input
+                    type="time"
+                    value={newGroup.deadlineTime}
+                    onChange={e => setNewGroup({...newGroup, deadlineTime: e.target.value})}
+                    className="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+              </div>
+              
+              {/* Auto-fill location preference */}
+              <div className="bg-blue-50 rounded-lg p-3">
+                <label className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={autoFillLocation}
+                    onChange={(e) => setAutoFillLocation(e.target.checked)}
+                    className="w-4 h-4 text-blue-600"
+                  />
+                  <span className="text-sm text-blue-800">
+                    Auto-fill location for future groups
+                  </span>
+                </label>
+                <p className="text-xs text-blue-600 mt-1">
+                  When enabled, your current location will be automatically filled in new group forms.
+                </p>
+              </div>
+            </div>
+            
+            <div className="flex justify-end gap-2 mt-6">
+              <Button variant="outline" onClick={() => setShowGroupModal(false)}>
+                Cancel
+              </Button>
+              <Button
+                className="bg-blue-600 hover:bg-blue-700 text-white"
+                onClick={() => {
+                  if (newGroup.product && newGroup.quantity && newGroup.location && newGroup.deadline && newGroup.deadlineTime) {
+                    const deadlineDateTime = `${newGroup.deadline}T${newGroup.deadlineTime}`;
+                    
+                    toast({
+                      title: "Product Group Created!",
+                      description: `${newGroup.product} group created for ${newGroup.location}`,
+                    });
+                    
+                    setShowGroupModal(false);
+                    setNewGroup({ 
+                      product: "", 
+                      quantity: "", 
+                      location: autoFillLocation && currentLocation ? currentLocation.name : "", 
+                      deadline: "", 
+                      deadlineTime: "",
+                      latitude: autoFillLocation && currentLocation ? currentLocation.latitude.toString() : "",
+                      longitude: autoFillLocation && currentLocation ? currentLocation.longitude.toString() : ""
+                    });
+                  } else {
+                    toast({
+                      title: "Missing Information",
+                      description: "Please fill in all required fields.",
+                      variant: "destructive"
+                    });
+                  }
+                }}
+                disabled={!newGroup.product || !newGroup.quantity || !newGroup.location || !newGroup.deadline || !newGroup.deadlineTime}
+              >
+                Create Group
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {/* Location Settings Modal */}
+      {showLocationModal && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
+          <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-md border">
+            <div className="flex justify-between items-start mb-6">
+              <h2 className="text-xl font-semibold">Location Settings</h2>
+              <button 
+                onClick={() => setShowLocationModal(false)}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="space-y-6">
+              {/* Current Location Status */}
+              <div>
+                <h3 className="text-sm font-medium text-gray-700 mb-3">Current Location</h3>
+                <div className="bg-gray-50 rounded-lg p-3">
+                  {currentLocation ? (
+                    <div className="flex items-center gap-2">
+                      <MapPin className="w-4 h-4 text-green-500" />
+                      <span className="text-sm text-gray-700">{currentLocation.name}</span>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      <MapPin className="w-4 h-4 text-gray-400" />
+                      <span className="text-sm text-gray-500">Location not detected</span>
+                    </div>
+                  )}
+                </div>
+                
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={detectCurrentLocation}
+                  disabled={isDetectingLocation}
+                  className="w-full mt-3 flex items-center justify-center gap-2"
+                >
+                  <Navigation className="w-4 h-4" />
+                  {isDetectingLocation ? "Detecting..." : "Detect Location"}
+                </Button>
+              </div>
+
+              {/* Auto-fill Preferences */}
+              <div>
+                <h3 className="text-sm font-medium text-gray-700 mb-3">Auto-fill Preferences</h3>
+                
+                <div className="space-y-3">
+                  <label className="flex items-center gap-3">
+                    <input
+                      type="checkbox"
+                      checked={autoFillLocation}
+                      onChange={(e) => setAutoFillLocation(e.target.checked)}
+                      className="w-4 h-4 text-blue-600"
+                    />
+                    <span className="text-sm">Auto-fill location in new group forms</span>
+                  </label>
+                </div>
+                
+                {autoFillLocation && currentLocation && (
+                  <div className="mt-3 p-3 bg-blue-50 rounded-lg">
+                    <p className="text-sm text-blue-800">
+                      Location will be automatically filled as: {currentLocation.name}
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {/* Location Permission Status */}
+              {locationPermission === 'denied' && (
+                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                  <div className="flex items-start gap-2">
+                    <div className="w-4 h-4 bg-yellow-400 rounded-full mt-0.5"></div>
+                    <div>
+                      <p className="text-sm font-medium text-yellow-800">Location Access Denied</p>
+                      <p className="text-xs text-yellow-600 mt-1">
+                        To use location features, please enable location permissions in your browser settings.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+            
+            <div className="flex justify-end gap-2 mt-6">
+              <Button variant="outline" onClick={() => setShowLocationModal(false)}>
+                Close
+              </Button>
+              <Button 
+                onClick={() => {
+                  setShowLocationModal(false);
+                  toast({
+                    title: "Settings saved",
+                    description: "Your location preferences have been updated.",
+                  });
+                }}
+                className="bg-blue-600 hover:bg-blue-700 text-white"
+              >
+                Save Settings
               </Button>
             </div>
           </div>

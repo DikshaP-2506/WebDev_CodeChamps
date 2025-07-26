@@ -11,6 +11,7 @@ import { Card, CardHeader, CardContent, CardTitle, CardDescription } from "@/com
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { ShoppingCart } from "lucide-react";
+import { useAuth } from "../../contexts/AuthContext";
 
 const VendorAuth: React.FC = () => {
   const [isLogin, setIsLogin] = useState(true);
@@ -18,6 +19,7 @@ const VendorAuth: React.FC = () => {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const navigate = useNavigate();
+  const { profileCompleted } = useAuth();
 
   // Google Sign-In
   const handleGoogle = async () => {
@@ -37,7 +39,7 @@ const VendorAuth: React.FC = () => {
       } else {
         // Check if user has completed profile setup (you would check your database here)
         // For now, we'll redirect to profile setup for all users
-        navigate("/vendor/profile-setup");
+        navigate("/vendor/dashboard");
       }
     } catch (err: any) {
       setError(err.message);
@@ -51,9 +53,7 @@ const VendorAuth: React.FC = () => {
     try {
       if (isLogin) {
         await signInWithEmailAndPassword(auth, email, password);
-        // For existing users, check if they have completed profile setup
-        // For now, redirect to profile setup
-        navigate("/vendor/profile-setup");
+        navigate("/vendor/dashboard");
       } else {
         // This is a new user signup
         await createUserWithEmailAndPassword(auth, email, password);
