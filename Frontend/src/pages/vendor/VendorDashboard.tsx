@@ -25,6 +25,11 @@ const VendorDashboard = () => {
     setShowJoinModal(true);
   };
 
+  const handleJoinGroupWithSuggestions = (group) => {
+    setSelectedGroup(group);
+    setShowGroupSuggestionsModal(true);
+  };
+
   const handleOrderNow = (supplier) => {
     setSelectedSupplier(supplier);
     setShowSupplierModal(true);
@@ -36,6 +41,17 @@ const VendorDashboard = () => {
       description: `You've placed an order for ${product} from ${supplier.name}`,
     });
     setShowSupplierModal(false);
+  };
+
+  const handleJoinGroupOrder = (group, quantity) => {
+    const pricePerKg = parseInt(group.pricePerKg.replace('₹', ''));
+    const totalCost = quantity * pricePerKg;
+
+    toast({
+      title: "Successfully Joined Group!",
+      description: `You've joined the ${group.product} group with ${quantity} kg for ₹${totalCost}`,
+    });
+    setShowGroupSuggestionsModal(false);
   };
 
   const confirmJoinGroup = () => {
@@ -91,7 +107,12 @@ const VendorDashboard = () => {
       deliveryAddress: "Sector 15, Market Area, Near City Mall",
       participants: 12,
       status: "Active",
-      discount: "15%"
+      discount: "15%",
+      image: "https://images.unsplash.com/photo-1592841200221-a6898f307baa?auto=format&fit=crop&w=400&q=80",
+      otherGroupProducts: [
+        { product: "Potatoes", targetQty: "400 kg", currentQty: "250 kg", pricePerKg: "₹22", discount: "12%", participants: 8, image: "https://images.unsplash.com/photo-1518977676601-b53f82aba655?auto=format&fit=crop&w=400&q=80" },
+        { product: "Carrots", targetQty: "200 kg", currentQty: "120 kg", pricePerKg: "₹35", discount: "10%", participants: 6, image: "https://images.unsplash.com/photo-1598170845058-32b9d6a5da37?auto=format&fit=crop&w=400&q=80" }
+      ]
     },
     {
       id: 2,
@@ -106,7 +127,12 @@ const VendorDashboard = () => {
       deliveryAddress: "Sector 22, Wholesale Market, Gate No. 3",
       participants: 8,
       status: "Almost Full",
-      discount: "10%"
+      discount: "10%",
+      image: "https://images.unsplash.com/photo-1508747703725-719777637510?auto=format&fit=crop&w=400&q=80",
+      otherGroupProducts: [
+        { product: "Garlic", targetQty: "100 kg", currentQty: "65 kg", pricePerKg: "₹80", discount: "15%", participants: 4, image: "https://images.unsplash.com/photo-1553978297-833d17b3b640?auto=format&fit=crop&w=400&q=80" },
+        { product: "Ginger", targetQty: "150 kg", currentQty: "90 kg", pricePerKg: "₹120", discount: "18%", participants: 7, image: "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?auto=format&fit=crop&w=400&q=80" }
+      ]
     }
   ];
 
@@ -331,7 +357,7 @@ const VendorDashboard = () => {
                         </div>
                         <button 
                           className="w-full bg-green-600 hover:bg-green-700 text-white py-2 rounded-lg font-medium transition-colors" 
-                          onClick={() => handleJoinGroup(order)}
+                          onClick={() => handleJoinGroupWithSuggestions(order)}
                         >
                           Join Group
                         </button>
@@ -545,6 +571,125 @@ const VendorDashboard = () => {
                       </button>
                     </div>
                   ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {/* Group Order Suggestions Modal */}
+      {showGroupSuggestionsModal && selectedGroup && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
+          <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-4xl border max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-start mb-6">
+              <div>
+                <h2 className="text-2xl font-semibold mb-2">Join Group Order</h2>
+                <div className="flex items-center gap-2 text-sm text-gray-600">
+                  <span>by {selectedGroup.supplier}</span>
+                  <span className="bg-green-100 text-green-700 px-2 py-1 rounded text-xs">{selectedGroup.discount} OFF</span>
+                  <span>{selectedGroup.participants} members</span>
+                </div>
+              </div>
+              <button 
+                onClick={() => setShowGroupSuggestionsModal(false)}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Selected Group Order */}
+            <div className="mb-6">
+              <h3 className="text-lg font-semibold mb-3">Selected Group Order</h3>
+              <div className="bg-green-50 border border-green-200 rounded-lg p-4 flex items-center gap-4">
+                <img src={selectedGroup.image} alt={selectedGroup.product} className="w-20 h-20 object-cover rounded-lg" />
+                <div className="flex-1">
+                  <div className="font-semibold text-lg">{selectedGroup.product}</div>
+                  <div className="text-green-600 font-bold text-xl">{selectedGroup.pricePerKg}</div>
+                  <div className="text-sm text-gray-600">Target: {selectedGroup.targetQty} | Current: {selectedGroup.currentQty}</div>
+                  <div className="w-full h-2 bg-gray-200 rounded mt-2">
+                    <div 
+                      className="h-2 bg-green-500 rounded transition-all" 
+                      style={{ width: `${Math.min(100, Math.round((parseInt(selectedGroup.currentQty) / parseInt(selectedGroup.targetQty)) * 100))}%` }}
+                    />
+                  </div>
+                </div>
+                <button 
+                  className="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg font-medium"
+                  onClick={() => handleJoinGroupOrder(selectedGroup, 10)}
+                >
+                  Join Group
+                </button>
+              </div>
+            </div>
+
+            {/* Other Group Orders from Same Supplier */}
+            <div className="mb-6">
+              <h3 className="text-lg font-semibold mb-3">More Group Orders from {selectedGroup.supplier}</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {selectedGroup.otherGroupProducts.map((groupProduct, index) => {
+                  const progress = Math.min(100, Math.round((parseInt(groupProduct.currentQty) / parseInt(groupProduct.targetQty)) * 100));
+                  return (
+                    <div key={index} className="bg-white border rounded-lg p-4 hover:shadow-md transition-shadow">
+                      <img src={groupProduct.image} alt={groupProduct.product} className="w-full h-32 object-cover rounded-lg mb-3" />
+                      <div className="font-semibold">{groupProduct.product}</div>
+                      <div className="text-green-600 font-bold mb-1">{groupProduct.pricePerKg}</div>
+                      <div className="text-xs text-gray-500 mb-2">
+                        <span>{groupProduct.participants} members</span>
+                        <span className="ml-2 bg-green-100 text-green-700 px-1 py-0.5 rounded">{groupProduct.discount} OFF</span>
+                      </div>
+                      <div className="text-xs text-gray-600 mb-2">
+                        Target: {groupProduct.targetQty} | Current: {groupProduct.currentQty}
+                      </div>
+                      <div className="w-full h-2 bg-gray-200 rounded mb-3">
+                        <div className="h-2 bg-green-500 rounded transition-all" style={{ width: `${progress}%` }} />
+                      </div>
+                      <button 
+                        className="w-full bg-green-600 hover:bg-green-700 text-white py-2 rounded-lg font-medium transition-colors"
+                        onClick={() => handleJoinGroupOrder({...selectedGroup, product: groupProduct.product, pricePerKg: groupProduct.pricePerKg}, 5)}
+                      >
+                        Join This Group
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Similar Group Orders */}
+            <div>
+              <h3 className="text-lg font-semibold mb-3">Similar Group Orders</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {groupOrders
+                  .filter(order => order.id !== selectedGroup.id && 
+                    (order.product.toLowerCase().includes('vegetable') || 
+                     selectedGroup.product.toLowerCase().includes('vegetable') ||
+                     order.supplier !== selectedGroup.supplier))
+                  .slice(0, 2)
+                  .map((order) => {
+                    const progress = Math.min(100, Math.round((parseInt(order.currentQty) / parseInt(order.targetQty)) * 100));
+                    return (
+                      <div key={order.id} className="bg-gray-50 border rounded-lg p-4 flex items-center gap-4">
+                        <img src={order.image} alt={order.product} className="w-16 h-16 object-cover rounded-lg" />
+                        <div className="flex-1">
+                          <div className="font-semibold">{order.product}</div>
+                          <div className="text-sm text-gray-600">by {order.supplier}</div>
+                          <div className="text-green-600 font-bold">{order.pricePerKg}</div>
+                          <div className="w-full h-1 bg-gray-200 rounded mt-1">
+                            <div className="h-1 bg-green-500 rounded" style={{ width: `${progress}%` }} />
+                          </div>
+                        </div>
+                        <button 
+                          className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg font-medium"
+                          onClick={() => {
+                            setSelectedGroup(order);
+                          }}
+                        >
+                          View
+                        </button>
+                      </div>
+                    );
+                  })}
               </div>
             </div>
           </div>
