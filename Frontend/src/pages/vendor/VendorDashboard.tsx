@@ -263,36 +263,46 @@ const VendorDashboard = () => {
                         </div>
                       </div>
             <div className="space-y-4">
-              {groupOrders
-                .filter(order => {
-                  const now = new Date();
-                  const deadline = new Date(order.deadline);
-                  return deadline > now && order.product.toLowerCase().includes(groupSearch.toLowerCase());
-                })
-                .map((order) => {
-                  const progress = Math.min(100, Math.round((parseInt(order.currentQty) / parseInt(order.targetQty)) * 100));
-                  return (
-                    <div key={order.id} className="bg-white rounded-lg shadow-sm border hover:shadow-md transition-shadow p-5 flex flex-col md:flex-row md:items-center md:justify-between">
-                      <div className="flex-1 mb-4 md:mb-0">
-                        <div className="font-semibold text-lg text-gray-900 mb-1">{order.product} Bulk Order</div>
-                        <div className="text-gray-600 text-sm mb-1">by {order.supplier}</div>
-                        <div className="flex items-center text-xs text-gray-500 mb-2">
-                          <span>{order.participants} members</span>
-                          <span className="mx-2">·</span>
-                          <span>Min order: {order.targetQty}</span>
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                {groupOrders
+                  .filter(order => {
+                    const now = new Date();
+                    const deadline = new Date(order.deadline);
+                    return deadline > now && order.product.toLowerCase().includes(groupSearch.toLowerCase());
+                  })
+                  .map((order) => {
+                    const progress = Math.min(100, Math.round((parseInt(order.currentQty) / parseInt(order.targetQty)) * 100));
+                    return (
+                      <div key={order.id} className="bg-white rounded-lg shadow-sm border hover:shadow-md transition-shadow p-4">
+                        <div className="mb-3">
+                          <div className="w-full h-32 bg-green-100 rounded-lg flex items-center justify-center mb-3">
+                            <Package className="w-12 h-12 text-green-600" />
+                          </div>
                         </div>
-                        <div className="w-full h-2 bg-gray-200 rounded overflow-hidden">
+                        <div className="font-semibold text-lg text-gray-900">{order.product}</div>
+                        <div className="text-gray-600 text-sm">by {order.supplier}</div>
+                        <div className="flex items-center text-xs text-gray-500 mt-1 mb-2">
+                          <span>{order.participants} members</span>
+                          <span className="ml-2 bg-green-100 text-green-700 px-2 py-0.5 rounded text-xs">{order.discount || '15%'} OFF</span>
+                        </div>
+                        <div className="text-green-600 font-bold text-lg mb-1">{order.pricePerKg}</div>
+                        <div className="flex items-center text-xs text-gray-500 mb-3">
+                          <span>Target: {order.targetQty}</span>
+                          <span className="ml-2">Current: {order.currentQty}</span>
+                        </div>
+                        <div className="w-full h-2 bg-gray-200 rounded overflow-hidden mb-3">
                           <div className="h-2 bg-green-500 transition-all duration-300" style={{ width: `${progress}%` }} />
                         </div>
+                        <button 
+                          className="w-full bg-green-600 hover:bg-green-700 text-white py-2 rounded-lg font-medium transition-colors" 
+                          onClick={() => handleJoinGroup(order)}
+                        >
+                          Join Group
+                        </button>
                       </div>
-                      <div className="flex flex-col items-end min-w-[140px]">
-                        <span className="bg-green-100 text-green-700 px-2 py-1 rounded text-xs font-medium mb-1">{order.discount || '15%'} OFF</span>
-                        <span className="text-gray-500 text-xs mb-2">{Math.max(0, (parseInt(order.targetQty) - parseInt(order.currentQty)))} spots left</span>
-                        <button className="bg-green-600 text-white px-4 py-2 rounded font-medium hover:bg-green-700 transition-colors" onClick={() => handleJoinGroup(order)}>Join Group</button>
-                      </div>
-                    </div>
-                  );
-                })}
+                    );
+                  })}
+              </div>
             </div>
           </TabsContent>
 
