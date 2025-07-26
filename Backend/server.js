@@ -4,6 +4,7 @@ const path = require('path');
 const vendorRoutes = require('./routes/vendor');
 const supplierRoutes = require('./routes/supplier');
 const productGroupRoutes = require('./routes/productGroup');
+const productRoutes = require('./routes/product');
 
 const app = express();
 
@@ -38,6 +39,7 @@ app.use((req, res, next) => {
 app.use('/api/vendors', vendorRoutes);
 app.use('/api/suppliers', supplierRoutes);
 app.use('/api/product-groups', productGroupRoutes);
+app.use('/api/products', productRoutes);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {

@@ -77,6 +77,23 @@ const initializeDatabase = () => {
       }
     });
 
+    // Create products table for product catalog
+    db.run(`CREATE TABLE IF NOT EXISTS products (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL,
+      description TEXT,
+      category TEXT,
+      price REAL,
+      image TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )`, (err) => {
+      if (err) {
+        console.error('Error creating products table:', err);
+      } else {
+        console.log('Products table created successfully (or already exists)');
+      }
+    });
+
     // Add sample vendor data (optional)
     db.get("SELECT COUNT(*) as count FROM vendors", (err, row) => {
       if (err) {

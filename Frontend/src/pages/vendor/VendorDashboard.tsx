@@ -18,6 +18,7 @@ import {
   calculateGroupDiscount,
   PAYMENT_METHODS
 } from "@/lib/razorpay";
+import { fetchProductGroups } from "@/lib/productGroupApi";
 
 const VendorDashboard = () => {
   const { user } = useAuth();
@@ -568,75 +569,6 @@ const VendorDashboard = () => {
     handleJoinGroupPayment(selectedGroup, joinQuantity);
   };
 
-  // Update groupOrders to use ISO datetime strings for deadline and include coordinates
-  const groupOrders = [
-    {
-      id: 1,
-      supplier: "Fresh Foods Co.",
-      supplierId: "1",
-      product: "Tomatoes",
-      targetQty: "500 kg",
-      currentQty: "320 kg",
-      pricePerKg: "₹25",
-      deadline: "2025-07-28T18:00:00", // Example future datetime
-      location: "Sector 15",
-      deliveryAddress: "Sector 15, Market Area, Near City Mall",
-      latitude: 19.0760,
-      longitude: 72.8777,
-      participants: 12,
-      status: "Active",
-      discount: "15%",
-      image: "https://images.unsplash.com/photo-1592841200221-a6898f307baa?auto=format&fit=crop&w=400&q=80",
-      otherGroupProducts: [
-        { product: "Potatoes", targetQty: "400 kg", currentQty: "250 kg", pricePerKg: "₹22", discount: "12%", participants: 8, image: "https://images.unsplash.com/photo-1518977676601-b53f82aba655?auto=format&fit=crop&w=400&q=80" },
-        { product: "Carrots", targetQty: "200 kg", currentQty: "120 kg", pricePerKg: "₹35", discount: "10%", participants: 6, image: "https://images.unsplash.com/photo-1598170845058-32b9d6a5da37?auto=format&fit=crop&w=400&q=80" }
-      ]
-    },
-    {
-      id: 2,
-      supplier: "Green Valley Supplies",
-      supplierId: "2", 
-      product: "Onions",
-      targetQty: "300 kg",
-      currentQty: "280 kg",
-      pricePerKg: "₹18",
-      deadline: "2025-07-27T15:30:00", // Example future datetime
-      location: "Sector 22",
-      deliveryAddress: "Sector 22, Wholesale Market, Gate No. 3",
-      latitude: 19.1197,
-      longitude: 72.9156,
-      participants: 8,
-      status: "Almost Full",
-      discount: "10%",
-      image: "https://images.unsplash.com/photo-1508747703725-719777637510?auto=format&fit=crop&w=400&q=80",
-      otherGroupProducts: [
-        { product: "Garlic", targetQty: "100 kg", currentQty: "65 kg", pricePerKg: "₹80", discount: "15%", participants: 4, image: "https://images.unsplash.com/photo-1553978297-833d17b3b640?auto=format&fit=crop&w=400&q=80" },
-        { product: "Ginger", targetQty: "150 kg", currentQty: "90 kg", pricePerKg: "₹120", discount: "18%", participants: 7, image: "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?auto=format&fit=crop&w=400&q=80" }
-      ]
-    },
-    {
-      id: 3,
-      supplier: "City Fresh Mart",
-      supplierId: "3",
-      product: "Cucumbers",
-      targetQty: "250 kg",
-      currentQty: "180 kg",
-      pricePerKg: "₹20",
-      deadline: "2025-07-29T12:00:00",
-      location: "Sector 8",
-      deliveryAddress: "Sector 8, Central Market Complex",
-      latitude: 19.0330,
-      longitude: 72.8570,
-      participants: 6,
-      status: "Active",
-      discount: "12%",
-      image: "https://images.unsplash.com/photo-1604977042946-1eecc30f269e?auto=format&fit=crop&w=400&q=80",
-      otherGroupProducts: [
-        { product: "Bell Peppers", targetQty: "150 kg", currentQty: "95 kg", pricePerKg: "₹45", discount: "8%", participants: 5, image: "https://images.unsplash.com/photo-1563565375-f3fdfdbefa83?auto=format&fit=crop&w=400&q=80" }
-      ]
-    }
-  ];
-
   // Helper function to format deadline for display
   const formatDeadline = (deadlineString: string) => {
     const deadline = new Date(deadlineString);
@@ -959,6 +891,46 @@ const VendorDashboard = () => {
       ]
     },
   ];
+
+  const mapGroupData = (group) => ({
+    id: group.id,
+    product: group.product,
+    pricePerKg: group.price || "N/A",
+    targetQty: group.quantity || "N/A",
+    currentQty: group.currentQty || "0",
+    deadline: group.deadline,
+    location: group.location,
+    latitude: group.latitude,
+    longitude: group.longitude,
+    participants: group.participants || 1,
+    status: group.status,
+    discount: group.discount || "0%",
+    supplier: group.supplier || "Supplier",
+    deliveryAddress: group.location || "",
+    image: group.image || "",
+    otherGroupProducts: [],
+  });
+
+  // Fetch product groups from backend
+  useEffect(() => {
+    const loadGroups = async () => {
+      try {
+        const groups = await fetchProductGroups();
+        const mappedGroups = groups.map(mapGroupData);
+        setGroupOrders(mappedGroups);
+        console.log('Fetched product groups:', mappedGroups);
+      } catch (err) {
+        toast({
+          title: "Error",
+          description: "Failed to fetch product groups.",
+          variant: "destructive"
+        });
+      }
+    };
+    loadGroups();
+  }, []);
+
+  const [groupOrders, setGroupOrders] = useState<any[]>([]);
 
   return (
     <div className="min-h-screen bg-slate-50">
