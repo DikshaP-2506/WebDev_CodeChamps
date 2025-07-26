@@ -175,21 +175,21 @@ const VendorDashboard = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-slate-50">
       {/* Header */}
-      <div className="bg-white shadow-sm border-b">
+      <div className="bg-blue-600 shadow-sm">
         <div className="container mx-auto px-4 py-4">
           <div className="flex justify-between items-center">
             <div>
-              <h1 className="text-2xl font-bold text-blue-600">MarketConnect</h1>
+              <h1 className="text-2xl font-bold text-white">MarketConnect</h1>
             </div>
             <div className="flex items-center gap-4">
-              <button className="p-2 hover:bg-gray-100 rounded-lg">
+              <button className="p-2 hover:bg-blue-500 rounded-lg text-white">
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
                 </svg>
               </button>
-              <div className="w-8 h-8 bg-gray-300 rounded-full"></div>
+              <div className="w-8 h-8 bg-blue-500 rounded-full"></div>
             </div>
           </div>
         </div>
@@ -197,114 +197,58 @@ const VendorDashboard = () => {
 
       {/* Main Content */}
       <div className="container mx-auto px-4 py-6">
-        {/* Stats Cards */}
-        <div className="grid md:grid-cols-4 gap-4 mb-6">
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Total Orders</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
-                  <Package className="w-4 h-4 text-blue-600" />
-                </div>
-                <div className="text-2xl font-bold">24</div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">This Month</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">
-                  <TrendingUp className="w-4 h-4 text-green-600" />
-                </div>
-                <div className="text-2xl font-bold">₹45,200</div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Group Orders</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center">
-                  <Users className="w-4 h-4 text-purple-600" />
-                </div>
-                <div className="text-2xl font-bold">3</div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Avg Rating</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 bg-yellow-100 rounded-lg flex items-center justify-center">
-                  <span className="text-yellow-600">⭐</span>
-                </div>
-                <div className="text-2xl font-bold">4.6</div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
         {/* Orders Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4 bg-gray-100 p-1 rounded-lg">
-            <TabsTrigger value="individual" className="data-[state=active]:bg-white data-[state=active]:shadow-sm">Browse Suppliers</TabsTrigger>
-            <TabsTrigger value="group" className="data-[state=active]:bg-white data-[state=active]:shadow-sm">Group Orders</TabsTrigger>
-            <TabsTrigger value="my-orders" className="data-[state=active]:bg-white data-[state=active]:shadow-sm">My Orders</TabsTrigger>
-            <TabsTrigger value="price-trends" className="data-[state=active]:bg-white data-[state=active]:shadow-sm">Price Trends</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-4 bg-white p-1 rounded-lg border shadow-sm">
+            <TabsTrigger value="individual" className="data-[state=active]:bg-blue-500 data-[state=active]:text-white">Browse Suppliers</TabsTrigger>
+            <TabsTrigger value="group" className="data-[state=active]:bg-green-500 data-[state=active]:text-white">Group Orders</TabsTrigger>
+            <TabsTrigger value="my-orders" className="data-[state=active]:bg-purple-500 data-[state=active]:text-white">My Orders</TabsTrigger>
+            <TabsTrigger value="price-trends" className="data-[state=active]:bg-orange-500 data-[state=active]:text-white">Price Trends</TabsTrigger>
             </TabsList>
 
           <TabsContent value="individual" className="space-y-4">
-            <div className="mb-6">
-              <h2 className="text-2xl font-bold mb-2 text-gray-900">Find Suppliers</h2>
-              <p className="text-gray-500 mb-4">Search and filter suppliers based on your needs</p>
-              <div className="flex gap-4 mb-6 items-center">
+            <div className="bg-blue-500 text-white rounded-lg p-6 mb-6">
+              <h2 className="text-2xl font-bold mb-2">Find Suppliers</h2>
+              <p className="text-blue-100 mb-4">Search and filter suppliers based on your needs</p>
+              <div className="flex gap-4 items-center">
                 <div className="relative flex-1">
                   <input
                     type="text"
                     placeholder="Search for materials, suppliers..."
-                    className="w-full pl-10 pr-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 bg-white"
+                    className="w-full pl-10 pr-4 py-3 border border-blue-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-300 text-gray-900 bg-white"
                   />
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                 </div>
-                <Button variant="outline" className="flex items-center gap-2 font-medium text-gray-700 border-gray-300 hover:bg-gray-100">
+                <Button variant="outline" className="flex items-center gap-2 text-white border-white hover:bg-blue-400">
                   <Filter className="w-4 h-4" /> Filters
             </Button>
           </div>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
               {suppliers.map(supplier => (
-                <div key={supplier.id} className="bg-white rounded-xl shadow-md hover:shadow-lg transition p-4 flex flex-col">
+                <div key={supplier.id} className="bg-white rounded-lg shadow-sm border hover:shadow-md transition-shadow p-4">
                   <img src={supplier.image} alt={supplier.name} className="h-40 w-full object-cover rounded-lg mb-3" />
                   <div className="font-semibold text-lg text-gray-900">{supplier.product}</div>
                   <div className="text-gray-600 text-sm">{supplier.name}</div>
                   <div className="flex items-center text-xs text-gray-500 mt-1 mb-2">
                     <span>{supplier.location}</span>
-                    {supplier.verified && <span className="ml-2 bg-green-100 text-green-700 px-2 py-0.5 rounded">Verified</span>}
+                    {supplier.verified && <span className="ml-2 bg-green-100 text-green-700 px-2 py-0.5 rounded text-xs">Verified</span>}
                   </div>
-                  <div className="text-blue-700 font-bold text-lg mb-1">{supplier.price}</div>
+                  <div className="text-blue-600 font-bold text-lg mb-1">{supplier.price}</div>
                   <div className="flex items-center text-xs text-gray-500 mb-3">
                     <span>Member: {supplier.memberYears} yrs</span>
                     <span className="ml-2">⭐ {supplier.rating}</span>
                   </div>
-                  <button className="bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg font-semibold transition">Order Now</button>
+                  <button className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg font-medium transition-colors">Order Now</button>
                 </div>
               ))}
             </div>
           </TabsContent>
 
           <TabsContent value="group" className="space-y-4">
-            <div className="mb-6">
-              <h2 className="text-2xl font-bold mb-2 text-gray-900">Group Orders</h2>
-              <p className="text-gray-500 mb-4">Join group orders for bulk discounts</p>
+            <div className="bg-green-500 text-white rounded-lg p-6 mb-6">
+              <h2 className="text-2xl font-bold mb-2">Group Orders</h2>
+              <p className="text-green-100 mb-4">Join group orders for bulk discounts</p>
                       </div>
             <div className="flex items-center mb-4">
               <div className="relative w-full max-w-md">
@@ -313,7 +257,7 @@ const VendorDashboard = () => {
                   placeholder="Search product groups..."
                   value={groupSearch}
                   onChange={e => setGroupSearch(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 bg-white"
+                  className="w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500"
                 />
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                         </div>
@@ -328,7 +272,7 @@ const VendorDashboard = () => {
                 .map((order) => {
                   const progress = Math.min(100, Math.round((parseInt(order.currentQty) / parseInt(order.targetQty)) * 100));
                   return (
-                    <div key={order.id} className="bg-white rounded-xl shadow-md hover:shadow-lg transition p-5 flex flex-col md:flex-row md:items-center md:justify-between">
+                    <div key={order.id} className="bg-white rounded-lg shadow-sm border hover:shadow-md transition-shadow p-5 flex flex-col md:flex-row md:items-center md:justify-between">
                       <div className="flex-1 mb-4 md:mb-0">
                         <div className="font-semibold text-lg text-gray-900 mb-1">{order.product} Bulk Order</div>
                         <div className="text-gray-600 text-sm mb-1">by {order.supplier}</div>
@@ -337,14 +281,14 @@ const VendorDashboard = () => {
                           <span className="mx-2">·</span>
                           <span>Min order: {order.targetQty}</span>
                         </div>
-                        <div className="w-full h-2 bg-gray-200 rounded">
-                          <div className="h-2 bg-blue-500 rounded transition-all" style={{ width: `${progress}%` }} />
+                        <div className="w-full h-2 bg-gray-200 rounded overflow-hidden">
+                          <div className="h-2 bg-green-500 transition-all duration-300" style={{ width: `${progress}%` }} />
                         </div>
                       </div>
                       <div className="flex flex-col items-end min-w-[140px]">
-                        <span className="bg-green-100 text-green-700 px-2 py-1 rounded text-xs font-bold mb-1">{order.discount || '15%'} OFF</span>
+                        <span className="bg-green-100 text-green-700 px-2 py-1 rounded text-xs font-medium mb-1">{order.discount || '15%'} OFF</span>
                         <span className="text-gray-500 text-xs mb-2">{Math.max(0, (parseInt(order.targetQty) - parseInt(order.currentQty)))} spots left</span>
-                        <button className="bg-black text-white px-4 py-2 rounded font-semibold hover:bg-gray-800 transition" onClick={() => handleJoinGroup(order)}>Join Group</button>
+                        <button className="bg-green-600 text-white px-4 py-2 rounded font-medium hover:bg-green-700 transition-colors" onClick={() => handleJoinGroup(order)}>Join Group</button>
                       </div>
                     </div>
                   );
@@ -353,43 +297,43 @@ const VendorDashboard = () => {
           </TabsContent>
 
           <TabsContent value="my-orders" className="space-y-4">
-            <div className="mb-6">
-              <h2 className="text-2xl font-bold mb-2 text-gray-900">My Orders</h2>
-              <p className="text-gray-500 mb-4">Track your order history</p>
+            <div className="bg-purple-500 text-white rounded-lg p-6 mb-6">
+              <h2 className="text-2xl font-bold mb-2">My Orders</h2>
+              <p className="text-purple-100 mb-4">Track your order history</p>
                       </div>
             <div className="space-y-4">
-              <div className="bg-white rounded-xl shadow-md hover:shadow-lg transition p-5 flex flex-col md:flex-row md:items-center md:justify-between">
+              <div className="bg-white rounded-lg shadow-sm border hover:shadow-md transition-shadow p-5 flex flex-col md:flex-row md:items-center md:justify-between">
                 <div className="flex-1 mb-4 md:mb-0">
                   <div className="font-semibold text-lg text-gray-900 mb-1">Rice (50kg)</div>
                   <div className="text-gray-600 text-sm mb-1">ABC Suppliers</div>
                   <div className="text-xs text-gray-500">2024-01-20</div>
                     </div>
                 <div className="flex flex-col items-end min-w-[140px]">
-                  <div className="text-lg font-semibold text-blue-600 mb-2">₹2,500</div>
-                  <div className="text-green-600 text-sm mb-2">Delivered</div>
-                  <Button variant="outline" size="sm" className="font-medium border-gray-300 hover:bg-gray-100">Track</Button>
+                  <div className="text-lg font-semibold text-purple-600 mb-2">₹2,500</div>
+                  <div className="text-green-600 text-sm mb-2 font-medium">Delivered</div>
+                  <Button variant="outline" size="sm" className="font-medium border-purple-500 text-purple-600 hover:bg-purple-50">Track</Button>
                         </div>
                       </div>
                     </div>
           </TabsContent>
 
           <TabsContent value="price-trends" className="space-y-4">
-            <div className="mb-6">
-              <h2 className="text-2xl font-bold mb-2 text-gray-900">Daily Price Trends</h2>
-              <p className="text-gray-500 mb-4">Track price movements for your items</p>
+            <div className="bg-orange-500 text-white rounded-lg p-6 mb-6">
+              <h2 className="text-2xl font-bold mb-2">Daily Price Trends</h2>
+              <p className="text-orange-100 mb-4">Track price movements for your items</p>
             </div>
             <div className="grid gap-4 md:grid-cols-2">
-              <div className="bg-white rounded-xl shadow-md hover:shadow-lg transition p-5 flex items-center justify-between">
+              <div className="bg-white rounded-lg shadow-sm border hover:shadow-md transition-shadow p-5 flex items-center justify-between">
                 <div>
                   <h3 className="text-lg font-semibold text-gray-900">Rice</h3>
-                  <p className="text-green-600 text-sm">↓2% from yesterday</p>
+                  <p className="text-green-600 text-sm font-medium">↓2% from yesterday</p>
                 </div>
                 <div className="text-lg font-semibold text-green-600">₹48/kg</div>
                       </div>
-              <div className="bg-white rounded-xl shadow-md hover:shadow-lg transition p-5 flex items-center justify-between">
+              <div className="bg-white rounded-lg shadow-sm border hover:shadow-md transition-shadow p-5 flex items-center justify-between">
                 <div>
                   <h3 className="text-lg font-semibold text-gray-900">Wheat</h3>
-                  <p className="text-red-600 text-sm">↑1.5% from yesterday</p>
+                  <p className="text-red-600 text-sm font-medium">↑1.5% from yesterday</p>
                     </div>
                 <div className="text-lg font-semibold text-red-600">₹35/kg</div>
                     </div>
@@ -400,8 +344,8 @@ const VendorDashboard = () => {
       
       {/* Join Group Modal */}
       {showJoinModal && selectedGroup && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-40 z-50">
-          <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-md">
+        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
+          <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-md border">
             <h2 className="text-xl font-semibold mb-4">Join Group Order</h2>
             <div className="space-y-4">
               <div>
@@ -460,7 +404,7 @@ const VendorDashboard = () => {
                 variant="default" 
                 onClick={confirmJoinGroup}
                 disabled={joinQuantity <= 0}
-                className="bg-black hover:bg-gray-800 text-white"
+                className="bg-green-600 hover:bg-green-700 text-white"
               >
                 Confirm Join
               </Button>
