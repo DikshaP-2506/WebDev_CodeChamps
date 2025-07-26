@@ -8,9 +8,10 @@ import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { fetchProductGroups, createProductGroup, updateProductGroupStatus } from "@/lib/productGroupApi";
+import { supplierApi, SupplierProfile } from "@/services/supplierApi";
 
 const SupplierDashboard = () => {
-  const { logout } = useAuth();
+  const { logout, user } = useAuth();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("group");
   const [showGroupModal, setShowGroupModal] = useState(false);
@@ -27,6 +28,11 @@ const SupplierDashboard = () => {
   const [showProfileEditModal, setShowProfileEditModal] = useState(false);
   const [showHamburgerMenu, setShowHamburgerMenu] = useState(false);
   
+  // Supplier profile data states
+  const [supplierData, setSupplierData] = useState<SupplierProfile | null>(null);
+  const [editFormData, setEditFormData] = useState<SupplierProfile | null>(null);
+  const [profileLoading, setProfileLoading] = useState(true);
+  
   // Location-based functionality states
   const [currentLocation, setCurrentLocation] = useState(null);
   const [locationPermission, setLocationPermission] = useState(null);
@@ -42,6 +48,64 @@ const SupplierDashboard = () => {
   useEffect(() => {
     checkLocationPermission();
   }, []);
+
+  // Fetch supplier profile data
+  useEffect(() => {
+    const fetchSupplierProfile = async () => {
+      if (!user?.uid) {
+        console.log('No user UID available');
+        setProfileLoading(false);
+        return;
+      }
+
+      console.log('🔍 Current Firebase User UID:', user.uid);
+      console.log('🔍 Current Firebase User Email:', user.email);
+
+      try {
+        console.log('Fetching supplier profile for UID:', user.uid);
+        const response = await supplierApi.getByUserId(user.uid);
+        console.log('Supplier profile response:', response);
+        const profile = response.supplier;
+        setSupplierData(profile);
+        setEditFormData(profile); // Initialize edit form with loaded data
+      } catch (error) {
+        console.error('Error fetching supplier profile:', error);
+        
+        // Fallback: Try to get all suppliers and show a selection modal
+        // This is temporary for development when Firebase UIDs aren't linked
+        try {
+          console.log('Trying fallback - fetch all suppliers');
+          const allSuppliersResponse = await supplierApi.getAll();
+          if (allSuppliersResponse.suppliers.length > 0) {
+            // For now, use the first supplier as fallback (you can modify this)
+            const fallbackProfile = allSuppliersResponse.suppliers.find(s => s.fullName === 'Atharv') || allSuppliersResponse.suppliers[0];
+            console.log('Using fallback profile:', fallbackProfile);
+            setSupplierData(fallbackProfile);
+            setEditFormData(fallbackProfile);
+            
+            toast({
+              title: "Profile Loaded (Fallback)",
+              description: `Loaded profile for ${fallbackProfile.fullName}. Firebase UID linking needed.`,
+              variant: "default"
+            });
+          } else {
+            throw new Error('No supplier profiles found');
+          }
+        } catch (fallbackError) {
+          console.error('Fallback also failed:', fallbackError);
+          toast({
+            title: "Error",
+            description: `Failed to load profile data: ${error.message || 'Unknown error'}`,
+            variant: "destructive"
+          });
+        }
+      } finally {
+        setProfileLoading(false);
+      }
+    };
+
+    fetchSupplierProfile();
+  }, [user, toast]);
 
   // Fetch product groups from backend
   useEffect(() => {
@@ -293,6 +357,48 @@ const SupplierDashboard = () => {
     }
   };
 
+  // Profile editing handlers
+  const handleEditInputChange = (field: string, value: string | string[]) => {
+    if (editFormData) {
+      setEditFormData({
+        ...editFormData,
+        [field]: value
+      });
+    }
+  };
+
+  const handleSaveProfile = async () => {
+    if (!editFormData || !supplierData?.id) return;
+
+    try {
+      await supplierApi.update(supplierData.id, editFormData);
+      setSupplierData(editFormData);
+      setShowProfileEditModal(false);
+      toast({
+        title: "Success",
+        description: "Profile updated successfully.",
+      });
+    } catch (error) {
+      console.error('Error updating profile:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update profile. Please try again.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleSupplyCapabilityToggle = (capability: string) => {
+    if (editFormData) {
+      const currentCapabilities = editFormData.supplyCapabilities || [];
+      const updatedCapabilities = currentCapabilities.includes(capability)
+        ? currentCapabilities.filter(item => item !== capability)
+        : [...currentCapabilities, capability];
+      
+      handleEditInputChange('supplyCapabilities', updatedCapabilities);
+    }
+  };
+
   // Helper function to format deadline for display
   const formatDeadline = (deadlineString: string) => {
     const deadline = new Date(deadlineString);
@@ -346,13 +452,26 @@ const SupplierDashboard = () => {
 
   return (
     <div className="min-h-screen bg-slate-50">
-      {/* Header */}
-      <div className="bg-green-600 shadow-sm">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex justify-between items-center">
-            <div>
-              <h1 className="text-2xl font-bold text-white">Supplier Dashboard</h1>
-            </div>
+      {/* Loading State */}
+      {profileLoading ? (
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="text-center">
+            <div className="w-8 h-8 border-2 border-green-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+            <p className="text-gray-600">Loading your profile...</p>
+          </div>
+        </div>
+      ) : (
+        <>
+          {/* Header */}
+          <div className="bg-green-600 shadow-sm">
+            <div className="container mx-auto px-4 py-4">
+              <div className="flex justify-between items-center">
+                <div>
+                  <h1 className="text-2xl font-bold text-white">Supplier Dashboard</h1>
+                  {supplierData && (
+                    <p className="text-green-100 text-sm">Welcome back, {supplierData.fullName}!</p>
+                  )}
+                </div>
             <div className="flex items-center gap-4">
               <div className="relative">
                 <button 
@@ -388,7 +507,7 @@ const SupplierDashboard = () => {
                       onClick={async () => {
                         setShowHamburgerMenu(false);
                         await logout();
-                        navigate('/');
+                        navigate('/supplier/auth');
                       }}
                     >
                       <LogOut className="w-4 h-4 mr-3" />
@@ -668,192 +787,321 @@ const SupplierDashboard = () => {
               </button>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Business Information */}
-              <div className="space-y-6">
-                <div>
-                  <h3 className="text-lg font-semibold mb-4">Business Information</h3>
-                  <div className="space-y-4">
-                    <div>
-                      <label className="block text-sm font-medium mb-2">Company Name</label>
-                      <input type="text" defaultValue="Green Valley Supplies" className="w-full border rounded px-3 py-2" />
+            {editFormData && (
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Business Information */}
+                <div className="space-y-6">
+                  <div>
+                    <h3 className="text-lg font-semibold mb-4">Business Information</h3>
+                    <div className="space-y-4">
+                      <div>
+                        <label className="block text-sm font-medium mb-2">Full Name *</label>
+                        <input 
+                          type="text" 
+                          value={editFormData.fullName} 
+                          onChange={(e) => handleEditInputChange('fullName', e.target.value)}
+                          className="w-full border rounded px-3 py-2" 
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium mb-2">Business Name</label>
+                        <input 
+                          type="text" 
+                          value={editFormData.businessName || ''} 
+                          onChange={(e) => handleEditInputChange('businessName', e.target.value)}
+                          className="w-full border rounded px-3 py-2" 
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium mb-2">Business Type *</label>
+                        <select 
+                          value={editFormData.businessType} 
+                          onChange={(e) => handleEditInputChange('businessType', e.target.value)}
+                          className="w-full border rounded px-3 py-2"
+                        >
+                          <option value="Wholesale">Wholesale</option>
+                          <option value="Retail">Retail</option>
+                          <option value="Manufacturing">Manufacturing</option>
+                          <option value="Distribution">Distribution</option>
+                          <option value="Import/Export">Import/Export</option>
+                          <option value="Local Supplier">Local Supplier</option>
+                          <option value="Other">Other</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium mb-2">Mobile Number *</label>
+                        <input 
+                          type="tel" 
+                          value={editFormData.mobileNumber} 
+                          onChange={(e) => handleEditInputChange('mobileNumber', e.target.value)}
+                          className="w-full border rounded px-3 py-2" 
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium mb-2">Language Preference *</label>
+                        <select 
+                          value={editFormData.languagePreference} 
+                          onChange={(e) => handleEditInputChange('languagePreference', e.target.value)}
+                          className="w-full border rounded px-3 py-2"
+                        >
+                          <option value="Hindi">Hindi</option>
+                          <option value="Marathi">Marathi</option>
+                          <option value="English">English</option>
+                          <option value="Gujarati">Gujarati</option>
+                          <option value="Punjabi">Punjabi</option>
+                          <option value="Bengali">Bengali</option>
+                        </select>
+                      </div>
                     </div>
-                    <div>
-                      <label className="block text-sm font-medium mb-2">Business Type</label>
-                      <select className="w-full border rounded px-3 py-2">
-                        <option>Wholesale Distributor</option>
-                        <option>Manufacturer</option>
-                        <option>Retailer</option>
-                        <option>Importer/Exporter</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium mb-2">GST Number</label>
-                      <input type="text" defaultValue="27AABCU9603R1ZX" className="w-full border rounded px-3 py-2" />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium mb-2">License Number</label>
-                      <input type="text" defaultValue="WB/2022/15847" className="w-full border rounded px-3 py-2" />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium mb-2">Years in Business</label>
-                      <input type="number" defaultValue="8" className="w-full border rounded px-3 py-2" />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium mb-2">Employee Count</label>
-                      <select className="w-full border rounded px-3 py-2">
-                        <option>1-10</option>
-                        <option>11-25</option>
-                        <option>25-50</option>
-                        <option>50-100</option>
-                        <option>100+</option>
-                      </select>
+                  </div>
+
+                  {/* Address Information */}
+                  <div>
+                    <h3 className="text-lg font-semibold mb-4">Address Information</h3>
+                    <div className="space-y-4">
+                      <div>
+                        <label className="block text-sm font-medium mb-2">Business Address *</label>
+                        <textarea 
+                          value={editFormData.businessAddress} 
+                          onChange={(e) => handleEditInputChange('businessAddress', e.target.value)}
+                          className="w-full border rounded px-3 py-2"
+                          rows={3}
+                        />
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                          <label className="block text-sm font-medium mb-2">City *</label>
+                          <input 
+                            type="text" 
+                            value={editFormData.city} 
+                            onChange={(e) => handleEditInputChange('city', e.target.value)}
+                            className="w-full border rounded px-3 py-2" 
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium mb-2">Pincode *</label>
+                          <input 
+                            type="text" 
+                            value={editFormData.pincode} 
+                            onChange={(e) => handleEditInputChange('pincode', e.target.value)}
+                            className="w-full border rounded px-3 py-2" 
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium mb-2">State *</label>
+                          <select 
+                            value={editFormData.state} 
+                            onChange={(e) => handleEditInputChange('state', e.target.value)}
+                            className="w-full border rounded px-3 py-2"
+                          >
+                            <option value="Maharashtra">Maharashtra</option>
+                            <option value="Delhi">Delhi</option>
+                            <option value="Karnataka">Karnataka</option>
+                            <option value="Tamil Nadu">Tamil Nadu</option>
+                            <option value="Gujarat">Gujarat</option>
+                            <option value="Punjab">Punjab</option>
+                            <option value="West Bengal">West Bengal</option>
+                            <option value="Uttar Pradesh">Uttar Pradesh</option>
+                          </select>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
 
-                {/* Contact Information */}
-                <div>
-                  <h3 className="text-lg font-semibold mb-4">Contact Information</h3>
-                  <div className="space-y-4">
-                    <div>
-                      <label className="block text-sm font-medium mb-2">Primary Email</label>
-                      <input type="email" defaultValue="amit@greenvalleysupplies.com" className="w-full border rounded px-3 py-2" />
+                {/* Supply Capabilities and Delivery */}
+                <div className="space-y-6">
+                  <div>
+                    <h3 className="text-lg font-semibold mb-4">Supply Capabilities</h3>
+                    <div className="grid grid-cols-2 gap-3">
+                      {['Spices', 'Oil', 'Vegetables', 'Grains', 'Dairy', 'Meat', 'Fruits', 'Flour', 'Sugar', 'Salt', 'Herbs', 'Packaging', 'Equipment'].map((capability) => (
+                        <label key={capability} className="flex items-center">
+                          <input 
+                            type="checkbox" 
+                            checked={editFormData.supplyCapabilities?.includes(capability) || false}
+                            onChange={() => handleSupplyCapabilityToggle(capability)}
+                            className="mr-2" 
+                          />
+                          {capability}
+                        </label>
+                      ))}
                     </div>
+                  </div>
+
+                  <div>
+                    <h3 className="text-lg font-semibold mb-4">Delivery Preferences</h3>
                     <div>
-                      <label className="block text-sm font-medium mb-2">Phone Number</label>
-                      <input type="tel" defaultValue="+91 99887 76543" className="w-full border rounded px-3 py-2" />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium mb-2">WhatsApp Business</label>
-                      <input type="tel" defaultValue="+91 99887 76543" className="w-full border rounded px-3 py-2" />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium mb-2">Website</label>
-                      <input type="url" defaultValue="www.greenvalleysupplies.com" className="w-full border rounded px-3 py-2" />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium mb-2">Business Address</label>
-                      <textarea 
-                        defaultValue="Plot 45, Industrial Area, Sector 22, Gurgaon, Haryana 122015"
+                      <label className="block text-sm font-medium mb-2">Preferred Delivery Time *</label>
+                      <select 
+                        value={editFormData.preferredDeliveryTime} 
+                        onChange={(e) => handleEditInputChange('preferredDeliveryTime', e.target.value)}
                         className="w-full border rounded px-3 py-2"
-                        rows={3}
-                      />
+                      >
+                        <option value="Morning (6 AM - 12 PM)">Morning (6 AM - 12 PM)</option>
+                        <option value="Afternoon (12 PM - 6 PM)">Afternoon (12 PM - 6 PM)</option>
+                        <option value="Evening (6 PM - 12 AM)">Evening (6 PM - 12 AM)</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* Business Information */}
+                  <div>
+                    <h3 className="text-lg font-semibold mb-4">Business Information</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium mb-2">GST Number</label>
+                        <input 
+                          type="text" 
+                          value={editFormData.gstNumber || ''} 
+                          onChange={(e) => handleEditInputChange('gstNumber', e.target.value)}
+                          className="w-full border rounded px-3 py-2" 
+                          placeholder="Enter GST number"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium mb-2">License Number</label>
+                        <input 
+                          type="text" 
+                          value={editFormData.licenseNumber || ''} 
+                          onChange={(e) => handleEditInputChange('licenseNumber', e.target.value)}
+                          className="w-full border rounded px-3 py-2" 
+                          placeholder="Enter license number"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium mb-2">Years in Business</label>
+                        <input 
+                          type="text" 
+                          value={editFormData.yearsInBusiness || ''} 
+                          onChange={(e) => handleEditInputChange('yearsInBusiness', e.target.value)}
+                          className="w-full border rounded px-3 py-2" 
+                          placeholder="e.g., 5"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium mb-2">Employee Count</label>
+                        <input 
+                          type="text" 
+                          value={editFormData.employeeCount || ''} 
+                          onChange={(e) => handleEditInputChange('employeeCount', e.target.value)}
+                          className="w-full border rounded px-3 py-2" 
+                          placeholder="e.g., 10-50"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Additional Contact Information */}
+                  <div>
+                    <h3 className="text-lg font-semibold mb-4">Additional Contact Information</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium mb-2">Primary Email</label>
+                        <input 
+                          type="email" 
+                          value={editFormData.primaryEmail || ''} 
+                          onChange={(e) => handleEditInputChange('primaryEmail', e.target.value)}
+                          className="w-full border rounded px-3 py-2" 
+                          placeholder="business@example.com"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium mb-2">WhatsApp Business</label>
+                        <input 
+                          type="text" 
+                          value={editFormData.whatsappBusiness || ''} 
+                          onChange={(e) => handleEditInputChange('whatsappBusiness', e.target.value)}
+                          className="w-full border rounded px-3 py-2" 
+                          placeholder="+91 9876543210"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Certifications */}
+                  <div>
+                    <h3 className="text-lg font-semibold mb-4">Certifications</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium mb-2">Food Safety License</label>
+                        <input 
+                          type="text" 
+                          value={editFormData.foodSafetyLicense || ''} 
+                          onChange={(e) => handleEditInputChange('foodSafetyLicense', e.target.value)}
+                          className="w-full border rounded px-3 py-2" 
+                          placeholder="Enter license number"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium mb-2">Organic Certification</label>
+                        <input 
+                          type="text" 
+                          value={editFormData.organicCertification || ''} 
+                          onChange={(e) => handleEditInputChange('organicCertification', e.target.value)}
+                          className="w-full border rounded px-3 py-2" 
+                          placeholder="Enter certification number"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium mb-2">ISO Certification</label>
+                        <input 
+                          type="text" 
+                          value={editFormData.isoCertification || ''} 
+                          onChange={(e) => handleEditInputChange('isoCertification', e.target.value)}
+                          className="w-full border rounded px-3 py-2" 
+                          placeholder="Enter certification number"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium mb-2">Export License</label>
+                        <input 
+                          type="text" 
+                          value={editFormData.exportLicense || ''} 
+                          onChange={(e) => handleEditInputChange('exportLicense', e.target.value)}
+                          className="w-full border rounded px-3 py-2" 
+                          placeholder="Enter license number"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Location Coordinates */}
+                  <div>
+                    <h3 className="text-lg font-semibold mb-4">Location (Optional)</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium mb-2">Latitude</label>
+                        <input 
+                          type="text" 
+                          value={editFormData.latitude || ''} 
+                          onChange={(e) => handleEditInputChange('latitude', e.target.value)}
+                          className="w-full border rounded px-3 py-2" 
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium mb-2">Longitude</label>
+                        <input 
+                          type="text" 
+                          value={editFormData.longitude || ''} 
+                          onChange={(e) => handleEditInputChange('longitude', e.target.value)}
+                          className="w-full border rounded px-3 py-2" 
+                        />
+                      </div>
                     </div>
                   </div>
                 </div>
               </div>
-
-              {/* Service & Product Information */}
-              <div className="space-y-6">
-                <div>
-                  <h3 className="text-lg font-semibold mb-4">Products & Services</h3>
-                  <div className="space-y-4">
-                    <div>
-                      <label className="block text-sm font-medium mb-2">Product Categories</label>
-                      <div className="space-y-2">
-                        <label className="flex items-center">
-                          <input type="checkbox" defaultChecked className="mr-2" />
-                          Fresh Vegetables
-                        </label>
-                        <label className="flex items-center">
-                          <input type="checkbox" defaultChecked className="mr-2" />
-                          Fruits
-                        </label>
-                        <label className="flex items-center">
-                          <input type="checkbox" defaultChecked className="mr-2" />
-                          Spices
-                        </label>
-                        <label className="flex items-center">
-                          <input type="checkbox" defaultChecked className="mr-2" />
-                          Grains
-                        </label>
-                        <label className="flex items-center">
-                          <input type="checkbox" className="mr-2" />
-                          Dairy Products
-                        </label>
-                      </div>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium mb-2">Minimum Order Value</label>
-                      <input type="number" defaultValue="5000" className="w-full border rounded px-3 py-2" />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium mb-2">Delivery Time</label>
-                      <select className="w-full border rounded px-3 py-2">
-                        <option>Same Day</option>
-                        <option>1-2 Business Days</option>
-                        <option>3-5 Business Days</option>
-                        <option>1 Week</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium mb-2">Payment Terms</label>
-                      <select className="w-full border rounded px-3 py-2">
-                        <option>Cash on Delivery</option>
-                        <option>15 Days Credit</option>
-                        <option>30 Days Credit</option>
-                        <option>45 Days Credit</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium mb-2">Service Areas</label>
-                      <div className="space-y-2">
-                        <label className="flex items-center">
-                          <input type="checkbox" defaultChecked className="mr-2" />
-                          Delhi NCR
-                        </label>
-                        <label className="flex items-center">
-                          <input type="checkbox" defaultChecked className="mr-2" />
-                          Haryana
-                        </label>
-                        <label className="flex items-center">
-                          <input type="checkbox" defaultChecked className="mr-2" />
-                          Punjab
-                        </label>
-                        <label className="flex items-center">
-                          <input type="checkbox" defaultChecked className="mr-2" />
-                          Rajasthan
-                        </label>
-                        <label className="flex items-center">
-                          <input type="checkbox" className="mr-2" />
-                          Uttar Pradesh
-                        </label>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Certifications */}
-                <div>
-                  <h3 className="text-lg font-semibold mb-4">Certifications</h3>
-                  <div className="space-y-4">
-                    <div>
-                      <label className="block text-sm font-medium mb-2">Food Safety License</label>
-                      <input type="text" placeholder="License Number" className="w-full border rounded px-3 py-2" />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium mb-2">Organic Certification</label>
-                      <input type="text" placeholder="Certificate Number" className="w-full border rounded px-3 py-2" />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium mb-2">ISO Certification</label>
-                      <input type="text" defaultValue="ISO 22000:2018" className="w-full border rounded px-3 py-2" />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium mb-2">Export License</label>
-                      <input type="text" placeholder="License Number" className="w-full border rounded px-3 py-2" />
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
+            )}
             
             <div className="flex justify-end gap-2 mt-6">
               <Button variant="outline" onClick={() => setShowProfileEditModal(false)}>
                 Cancel
               </Button>
-              <Button className="bg-indigo-600 hover:bg-indigo-700 text-white">
+              <Button 
+                onClick={handleSaveProfile}
+                className="bg-indigo-600 hover:bg-indigo-700 text-white"
+                disabled={!editFormData}
+              >
                 Save Changes
               </Button>
             </div>
@@ -1153,6 +1401,8 @@ const SupplierDashboard = () => {
             </div>
           </div>
         </div>
+      )}
+        </>
       )}
     </div>
   );

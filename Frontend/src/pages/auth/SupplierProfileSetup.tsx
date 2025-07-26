@@ -124,8 +124,20 @@ const SupplierProfileSetup: React.FC = () => {
     setLoading(true);
 
     try {
+      // Get current user from Firebase auth
+      const currentUser = auth.currentUser;
+      if (!currentUser) {
+        toast({
+          title: "Authentication Error",
+          description: "Please log in again to complete your profile.",
+          variant: "destructive"
+        });
+        return;
+      }
+
       // Save the profile data using our API service
       const result = await supplierApi.create({
+        firebaseUserId: currentUser.uid, // Add Firebase UID
         fullName: formData.fullName,
         mobileNumber: formData.mobileNumber,
         languagePreference: formData.languagePreference,

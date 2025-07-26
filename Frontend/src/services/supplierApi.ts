@@ -3,6 +3,7 @@ import { api } from './api';
 // Supplier-related types
 export interface SupplierProfile {
   id?: number;
+  firebaseUserId?: string;
   fullName: string;
   mobileNumber: string;
   languagePreference: string;
@@ -16,6 +17,17 @@ export interface SupplierProfile {
   preferredDeliveryTime: string;
   latitude?: string;
   longitude?: string;
+  // Additional fields
+  gstNumber?: string;
+  licenseNumber?: string;
+  yearsInBusiness?: string;
+  employeeCount?: string;
+  primaryEmail?: string;
+  whatsappBusiness?: string;
+  foodSafetyLicense?: string;
+  organicCertification?: string;
+  isoCertification?: string;
+  exportLicense?: string;
 }
 
 export interface SupplierResponse {
