@@ -30,7 +30,20 @@ const SupplierProfileSetup: React.FC = () => {
     supplyCapabilities: [] as string[],
     preferredDeliveryTime: "",
     latitude: "",
-    longitude: ""
+    longitude: "",
+    // Additional Business Information
+    gstNumber: "",
+    licenseNumber: "",
+    yearsInBusiness: "",
+    employeeCount: "",
+    // Additional Contact Information
+    primaryEmail: "",
+    whatsappBusiness: "",
+    // Certifications
+    foodSafetyLicense: "",
+    organicCertification: "",
+    isoCertification: "",
+    exportLicense: ""
   });
 
   // Get user's phone number from Firebase Auth if available
@@ -125,7 +138,20 @@ const SupplierProfileSetup: React.FC = () => {
         supplyCapabilities: formData.supplyCapabilities,
         preferredDeliveryTime: formData.preferredDeliveryTime,
         latitude: formData.latitude,
-        longitude: formData.longitude
+        longitude: formData.longitude,
+        // Additional Business Information
+        gstNumber: formData.gstNumber,
+        licenseNumber: formData.licenseNumber,
+        yearsInBusiness: formData.yearsInBusiness,
+        employeeCount: formData.employeeCount,
+        // Additional Contact Information
+        primaryEmail: formData.primaryEmail,
+        whatsappBusiness: formData.whatsappBusiness,
+        // Certifications
+        foodSafetyLicense: formData.foodSafetyLicense,
+        organicCertification: formData.organicCertification,
+        isoCertification: formData.isoCertification,
+        exportLicense: formData.exportLicense
       });
 
       console.log('Supplier profile created:', result);
@@ -157,6 +183,9 @@ const SupplierProfileSetup: React.FC = () => {
   const businessTypes = ["Wholesale", "Retail", "Manufacturing", "Distribution", "Import/Export", "Local Supplier", "Other"];
   const supplyCapabilities = ["Spices", "Oil", "Vegetables", "Grains", "Dairy", "Meat", "Fruits", "Flour", "Sugar", "Salt", "Herbs", "Packaging", "Equipment"];
   const deliveryTimes = ["Morning (6 AM - 12 PM)", "Afternoon (12 PM - 6 PM)", "Evening (6 PM - 12 AM)"];
+  
+  // Additional options for new fields
+  const employeeCounts = ["1-10", "11-25", "25-50", "50-100", "100+"];
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-green-50 py-8">
@@ -294,6 +323,83 @@ const SupplierProfileSetup: React.FC = () => {
                     </SelectContent>
                   </Select>
                 </div>
+
+                {/* Additional Business Information */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="gstNumber">GST Number</Label>
+                    <Input
+                      id="gstNumber"
+                      value={formData.gstNumber}
+                      onChange={(e) => handleInputChange("gstNumber", e.target.value)}
+                      placeholder="Enter GST number"
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="licenseNumber">License Number</Label>
+                    <Input
+                      id="licenseNumber"
+                      value={formData.licenseNumber}
+                      onChange={(e) => handleInputChange("licenseNumber", e.target.value)}
+                      placeholder="Enter license number"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="yearsInBusiness">Years in Business</Label>
+                    <Input
+                      id="yearsInBusiness"
+                      type="number"
+                      value={formData.yearsInBusiness}
+                      onChange={(e) => handleInputChange("yearsInBusiness", e.target.value)}
+                      placeholder="Enter years in business"
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="employeeCount">Employee Count</Label>
+                    <Select value={formData.employeeCount} onValueChange={(value) => handleInputChange("employeeCount", value)}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select employee count" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {employeeCounts.map((count) => (
+                          <SelectItem key={count} value={count}>{count}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                {/* Contact Information */}
+                <h3 className="text-lg font-semibold text-supplier">Contact Information</h3>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="primaryEmail">Primary Email</Label>
+                    <Input
+                      id="primaryEmail"
+                      type="email"
+                      value={formData.primaryEmail}
+                      onChange={(e) => handleInputChange("primaryEmail", e.target.value)}
+                      placeholder="Enter primary email"
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="whatsappBusiness">WhatsApp Business</Label>
+                    <Input
+                      id="whatsappBusiness"
+                      type="tel"
+                      value={formData.whatsappBusiness}
+                      onChange={(e) => handleInputChange("whatsappBusiness", e.target.value)}
+                      placeholder="Enter WhatsApp business number"
+                    />
+                  </div>
+                </div>
               </div>
 
               {/* Supply Capabilities */}
@@ -329,6 +435,55 @@ const SupplierProfileSetup: React.FC = () => {
                       ))}
                     </SelectContent>
                   </Select>
+                </div>
+              </div>
+
+              {/* Certifications */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold text-supplier">Certifications (Optional)</h3>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="foodSafetyLicense">Food Safety License</Label>
+                    <Input
+                      id="foodSafetyLicense"
+                      value={formData.foodSafetyLicense}
+                      onChange={(e) => handleInputChange("foodSafetyLicense", e.target.value)}
+                      placeholder="Enter license number"
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="organicCertification">Organic Certification</Label>
+                    <Input
+                      id="organicCertification"
+                      value={formData.organicCertification}
+                      onChange={(e) => handleInputChange("organicCertification", e.target.value)}
+                      placeholder="Enter certificate number"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="isoCertification">ISO Certification</Label>
+                    <Input
+                      id="isoCertification"
+                      value={formData.isoCertification}
+                      onChange={(e) => handleInputChange("isoCertification", e.target.value)}
+                      placeholder="e.g., ISO 22000:2018"
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="exportLicense">Export License</Label>
+                    <Input
+                      id="exportLicense"
+                      value={formData.exportLicense}
+                      onChange={(e) => handleInputChange("exportLicense", e.target.value)}
+                      placeholder="Enter license number"
+                    />
+                  </div>
                 </div>
               </div>
 

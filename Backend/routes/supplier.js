@@ -10,7 +10,11 @@ router.post('/', async (req, res) => {
     const {
       firebaseUserId, fullName, mobileNumber, languagePreference, businessName, businessAddress,
       city, pincode, state, businessType, supplyCapabilities,
-      preferredDeliveryTime, latitude, longitude
+      preferredDeliveryTime, latitude, longitude,
+      // Additional fields
+      gstNumber, licenseNumber, yearsInBusiness, employeeCount,
+      primaryEmail, whatsappBusiness,
+      foodSafetyLicense, organicCertification, isoCertification, exportLicense
     } = req.body;
 
     // Validation
@@ -23,19 +27,25 @@ router.post('/', async (req, res) => {
       });
     }
 
-    // Convert supplyCapabilities array to JSON string for storage
+    // Convert arrays to JSON strings for storage
     const supplyCapabilitiesJson = JSON.stringify(supplyCapabilities);
 
     const result = await query(
       `INSERT INTO suppliers (
         firebase_user_id, full_name, mobile_number, language_preference, business_name, business_address,
         city, pincode, state, business_type, supply_capabilities,
-        preferred_delivery_time, latitude, longitude
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        preferred_delivery_time, latitude, longitude,
+        gst_number, license_number, years_in_business, employee_count,
+        primary_email, whatsapp_business,
+        food_safety_license, organic_certification, iso_certification, export_license
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         firebaseUserId || null, fullName, mobileNumber, languagePreference, businessName || '', businessAddress,
         city, pincode, state, businessType, supplyCapabilitiesJson,
-        preferredDeliveryTime, latitude || '', longitude || ''
+        preferredDeliveryTime, latitude || '', longitude || '',
+        gstNumber || '', licenseNumber || '', yearsInBusiness || '', employeeCount || '',
+        primaryEmail || '', whatsappBusiness || '',
+        foodSafetyLicense || '', organicCertification || '', isoCertification || '', exportLicense || ''
       ]
     );
 
@@ -58,7 +68,17 @@ router.post('/', async (req, res) => {
         supplyCapabilities,
         preferredDeliveryTime,
         latitude,
-        longitude
+        longitude,
+        gstNumber,
+        licenseNumber,
+        yearsInBusiness,
+        employeeCount,
+        primaryEmail,
+        whatsappBusiness,
+        foodSafetyLicense,
+        organicCertification,
+        isoCertification,
+        exportLicense
       }
     });
   } catch (err) {

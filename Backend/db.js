@@ -94,6 +94,34 @@ db.serialize(() => {
       });
     }
   });
+
+  // Add new supplier profile columns
+  const newSupplierColumns = [
+    'gst_number TEXT',
+    'license_number TEXT',
+    'years_in_business TEXT',
+    'employee_count TEXT',
+    'primary_email TEXT',
+    'whatsapp_business TEXT',
+    'website TEXT',
+    'minimum_order_value TEXT',
+    'delivery_time TEXT',
+    'payment_terms TEXT',
+    'service_areas TEXT',
+    'food_safety_license TEXT',
+    'organic_certification TEXT',
+    'iso_certification TEXT',
+    'export_license TEXT'
+  ];
+
+  newSupplierColumns.forEach(column => {
+    const columnName = column.split(' ')[0];
+    db.run(`ALTER TABLE suppliers ADD COLUMN ${column}`, (err) => {
+      if (err && !err.message.includes('duplicate column name')) {
+        console.error(`Error adding ${columnName} column to suppliers:`, err.message);
+      }
+    });
+  });
   
   db.run(`CREATE TABLE IF NOT EXISTS orders (
     id TEXT PRIMARY KEY,
