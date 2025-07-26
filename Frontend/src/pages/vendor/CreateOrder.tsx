@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { ArrowLeft, Plus, Trash2, Users, User, Calendar, MapPin } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, User, Calendar, MapPin } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 
@@ -22,7 +22,8 @@ const CreateOrder = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  const [orderType, setOrderType] = useState<"group" | "individual">("group");
+  // Only individual order is supported now
+  const orderType = "individual";
   const [items, setItems] = useState<OrderItem[]>([
     { id: "1", name: "", quantity: 0, preferredPrice: 0, unit: "kg" }
   ]);
@@ -89,9 +90,7 @@ const CreateOrder = () => {
       setLoading(false);
       toast({
         title: "Order Created Successfully!",
-        description: orderType === "group" 
-          ? "Your group order request has been posted. Suppliers will start bidding soon."
-          : "Your individual order has been sent to suppliers in your area.",
+        description: "Your individual order has been sent to suppliers in your area.",
       });
       navigate('/vendor/dashboard');
     }, 2000);
@@ -119,56 +118,30 @@ const CreateOrder = () => {
 
       <div className="container mx-auto px-4 py-6">
         <div className="max-w-4xl mx-auto space-y-6">
-          {/* Order Type Selection */}
+          {/* Order Type Selection (Individual Only) */}
           <Card>
             <CardHeader>
               <CardTitle>Order Type</CardTitle>
               <CardDescription>
-                Choose between group order (better prices) or individual order (faster fulfillment)
+                Only individual orders are supported. Direct order for immediate delivery.
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <RadioGroup value={orderType} onValueChange={(value: "group" | "individual") => setOrderType(value)}>
-                <div className="grid md:grid-cols-2 gap-4">
-                  <Card className={`cursor-pointer border-2 transition-all ${orderType === "group" ? "border-vendor bg-vendor/5" : "border-gray-200"}`}>
-                    <CardContent className="p-4">
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="group" id="group" />
-                        <Label htmlFor="group" className="flex-1 cursor-pointer">
-                          <div className="flex items-center gap-3">
-                            <Users className="w-8 h-8 text-vendor" />
-                            <div>
-                              <h3 className="font-semibold">Group Order</h3>
-                              <p className="text-sm text-muted-foreground">
-                                Join with other vendors for bulk pricing
-                              </p>
-                            </div>
-                          </div>
-                        </Label>
+              <div className="grid md:grid-cols-1 gap-4">
+                <Card className="border-2 border-vendor bg-vendor/5">
+                  <CardContent className="p-4">
+                    <div className="flex items-center space-x-2">
+                      <User className="w-8 h-8 text-vendor" />
+                      <div>
+                        <h3 className="font-semibold">Individual Order</h3>
+                        <p className="text-sm text-muted-foreground">
+                          Direct order for immediate delivery
+                        </p>
                       </div>
-                    </CardContent>
-                  </Card>
-
-                  <Card className={`cursor-pointer border-2 transition-all ${orderType === "individual" ? "border-vendor bg-vendor/5" : "border-gray-200"}`}>
-                    <CardContent className="p-4">
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="individual" id="individual" />
-                        <Label htmlFor="individual" className="flex-1 cursor-pointer">
-                          <div className="flex items-center gap-3">
-                            <User className="w-8 h-8 text-vendor" />
-                            <div>
-                              <h3 className="font-semibold">Individual Order</h3>
-                              <p className="text-sm text-muted-foreground">
-                                Direct order for immediate delivery
-                              </p>
-                            </div>
-                          </div>
-                        </Label>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </div>
-              </RadioGroup>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
             </CardContent>
           </Card>
 
@@ -369,7 +342,7 @@ const CreateOrder = () => {
               disabled={loading}
               size="lg"
             >
-              {loading ? "Creating Order..." : `Create ${orderType === "group" ? "Group" : "Individual"} Order`}
+              {loading ? "Creating Order..." : "Create Individual Order"}
             </Button>
           </div>
         </div>

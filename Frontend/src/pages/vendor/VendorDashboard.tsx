@@ -3,11 +3,12 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Users, ShoppingCart, Package, Clock, MapPin, Filter } from "lucide-react";
+import { Plus, Users, ShoppingCart, Package, Clock, MapPin, Filter, Search } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 const VendorDashboard = () => {
   const [activeTab, setActiveTab] = useState("group");
+  const [groupSearch, setGroupSearch] = useState("");
   const navigate = useNavigate();
 
   const groupOrders = [
@@ -136,8 +137,22 @@ const VendorDashboard = () => {
           </div>
 
           <TabsContent value="group" className="space-y-4">
+            <div className="flex items-center mb-4">
+              <div className="relative w-full max-w-md">
+                <input
+                  type="text"
+                  placeholder="Search product groups..."
+                  value={groupSearch}
+                  onChange={e => setGroupSearch(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-vendor"
+                />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+              </div>
+            </div>
             <div className="grid gap-4">
-              {groupOrders.map((order) => (
+              {groupOrders
+                .filter(order => order.product.toLowerCase().includes(groupSearch.toLowerCase()))
+                .map((order) => (
                 <Card key={order.id} className="hover:shadow-lg transition-all duration-300">
                   <CardContent className="p-6">
                     <div className="flex justify-between items-start mb-4">
