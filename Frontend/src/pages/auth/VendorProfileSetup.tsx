@@ -96,9 +96,21 @@ const VendorProfileSetup: React.FC = () => {
     setLoading(true);
 
     try {
-      // Here you would typically save the profile data to your database
-      // For now, we'll simulate the save operation
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // Send data to backend API
+      const response = await fetch('http://localhost:5000/api/vendors', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to save profile');
+      }
+
+      const result = await response.json();
 
       // Set profile as completed
       setProfileCompleted(true);
@@ -111,9 +123,10 @@ const VendorProfileSetup: React.FC = () => {
       // Redirect to vendor dashboard
       navigate("/vendor/dashboard");
     } catch (error) {
+      console.error('Error saving vendor profile:', error);
       toast({
         title: "Error",
-        description: "Failed to save profile. Please try again.",
+        description: error instanceof Error ? error.message : "Failed to save profile. Please try again.",
         variant: "destructive"
       });
     } finally {

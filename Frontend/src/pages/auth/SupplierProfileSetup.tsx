@@ -96,9 +96,36 @@ const SupplierProfileSetup: React.FC = () => {
     setLoading(true);
 
     try {
-      // Here you would typically save the profile data to your database
-      // For now, we'll simulate the save operation
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // Save the profile data to your database
+      const response = await fetch('http://localhost:5000/api/suppliers', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          fullName: formData.fullName,
+          mobileNumber: formData.mobileNumber,
+          languagePreference: formData.languagePreference,
+          businessName: formData.businessName,
+          businessAddress: formData.businessAddress,
+          city: formData.city,
+          pincode: formData.pincode,
+          state: formData.state,
+          businessType: formData.businessType,
+          supplyCapabilities: formData.supplyCapabilities,
+          preferredDeliveryTime: formData.preferredDeliveryTime,
+          latitude: formData.latitude,
+          longitude: formData.longitude
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to save profile');
+      }
+
+      const result = await response.json();
+      console.log('Supplier profile created:', result);
 
       // Set profile as completed
       setProfileCompleted(true);
@@ -111,9 +138,10 @@ const SupplierProfileSetup: React.FC = () => {
       // Redirect to supplier dashboard
       navigate("/supplier/dashboard");
     } catch (error) {
+      console.error('Error saving supplier profile:', error);
       toast({
         title: "Error",
-        description: "Failed to save profile. Please try again.",
+        description: error instanceof Error ? error.message : "Failed to save profile. Please try again.",
         variant: "destructive"
       });
     } finally {
@@ -354,4 +382,4 @@ const SupplierProfileSetup: React.FC = () => {
   );
 };
 
-export default SupplierProfileSetup; 
+export default SupplierProfileSetup;
