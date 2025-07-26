@@ -24,8 +24,21 @@ const SupplierAuth: React.FC = () => {
     setError("");
     try {
       const provider = new GoogleAuthProvider();
-      await signInWithPopup(auth, provider);
-      navigate("/supplier/dashboard");
+      const result = await signInWithPopup(auth, provider);
+      
+      // Check if this is a first-time user by checking creation time
+      const user = result.user;
+      const creationTime = user.metadata.creationTime;
+      const lastSignInTime = user.metadata.lastSignInTime;
+      
+      // If creation time equals last sign in time, it's a new user
+      if (creationTime === lastSignInTime) {
+        navigate("/supplier/profile-setup");
+      } else {
+        // Check if user has completed profile setup (you would check your database here)
+        // For now, we'll redirect to profile setup for all users
+        navigate("/supplier/profile-setup");
+      }
     } catch (err: any) {
       setError(err.message);
     }
@@ -38,10 +51,13 @@ const SupplierAuth: React.FC = () => {
     try {
       if (isLogin) {
         await signInWithEmailAndPassword(auth, email, password);
-        navigate("/supplier/dashboard");
+        // For existing users, check if they have completed profile setup
+        // For now, redirect to profile setup
+        navigate("/supplier/profile-setup");
       } else {
+        // This is a new user signup
         await createUserWithEmailAndPassword(auth, email, password);
-        navigate("/supplier/dashboard");
+        navigate("/supplier/profile-setup");
       }
     } catch (err: any) {
       setError(err.message);
