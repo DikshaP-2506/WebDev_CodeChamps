@@ -38,6 +38,24 @@ export const RAZORPAY_CONFIG = {
   company: "MarketConnect",
 };
 
+// Validate Razorpay key format
+export const validateRazorpayKey = (key: string): boolean => {
+  if (!key) return false;
+  
+  console.log('🔑 Validating Razorpay key:', key);
+  console.log('🔑 Key length:', key.length);
+  
+  // Test keys should start with rzp_test_ and be at least 28 characters total
+  // Live keys should start with rzp_live_ and be at least 28 characters total
+  const testKeyRegex = /^rzp_test_[A-Za-z0-9]{14,}$/;
+  const liveKeyRegex = /^rzp_live_[A-Za-z0-9]{14,}$/;
+  
+  const isValid = testKeyRegex.test(key) || liveKeyRegex.test(key);
+  console.log('🔑 Key validation result:', isValid);
+  
+  return isValid;
+};
+
 // Create Razorpay order options
 export const createRazorpayOptions = (
   amount: number,
@@ -51,13 +69,28 @@ export const createRazorpayOptions = (
   onSuccess?: (response: RazorpayResponse) => void,
   onDismiss?: () => void
 ): RazorpayOptions => {
-  return {
+  console.log('🔧 Creating Razorpay Options Debug:');
+  console.log('💰 Amount (INR):', amount);
+  console.log('💰 Amount (Paise):', amount * 100);
+  console.log('🆔 Order ID:', orderId);
+  console.log('📝 Description:', description);
+  console.log('🔑 Razorpay Key:', RAZORPAY_CONFIG.key);
+  console.log('� Key Valid:', validateRazorpayKey(RAZORPAY_CONFIG.key));
+  console.log('�👤 User Details:', userDetails);
+
+  // Validate the Razorpay key
+  if (!validateRazorpayKey(RAZORPAY_CONFIG.key)) {
+    console.error('❌ Invalid Razorpay key format:', RAZORPAY_CONFIG.key);
+    throw new Error(`Invalid Razorpay key format: ${RAZORPAY_CONFIG.key}`);
+  }
+
+  const options = {
     key: RAZORPAY_CONFIG.key,
     amount: amount * 100, // Convert to paise
     currency: RAZORPAY_CONFIG.currency,
     name: RAZORPAY_CONFIG.company,
     description: description,
-    order_id: orderId,
+    // order_id: orderId, // Temporarily removed - this might be causing 400 errors
     prefill: {
       name: userDetails?.name || "",
       email: userDetails?.email || "",
@@ -65,18 +98,36 @@ export const createRazorpayOptions = (
     },
     theme: RAZORPAY_CONFIG.theme,
     handler: (response: RazorpayResponse) => {
+      console.log('✅ Razorpay Handler Called:', response);
       if (onSuccess) {
         onSuccess(response);
       }
     },
     modal: {
       ondismiss: () => {
+        console.log('🚫 Razorpay Modal Dismissed');
         if (onDismiss) {
           onDismiss();
         }
       },
+      // Add error handling for modal
+      escape: true,
+      backdrop_close: true,
+      // Handle Razorpay errors
+      onhidden: () => {
+        console.log('🔒 Razorpay Modal Hidden');
+      }
     },
+    // Add additional options for better error handling
+    retry: {
+      enabled: false
+    },
+    timeout: 300, // 5 minutes timeout
+    remember_customer: false,
   };
+
+  console.log('⚙️ Final Razorpay Options:', options);
+  return options;
 };
 
 // Payment method configurations

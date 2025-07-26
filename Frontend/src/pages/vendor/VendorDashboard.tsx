@@ -3,20 +3,17 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Users, ShoppingCart, Package, Clock, MapPin, Filter, Search, TrendingUp, User, Edit, Camera, Mail, Phone, Building, Shield, Star, Calendar, Navigation, Target, Truck, CreditCard, Wallet, Smartphone, CheckCircle2, X } from "lucide-react";
+import { Plus, Users, ShoppingCart, Package, Clock, MapPin, Filter, Search, TrendingUp, User, Edit, Camera, Mail, Phone, Building, Shield, Star, Calendar, Navigation, Target, Truck, CreditCard, CheckCircle2, X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
-import { useRazorpay } from "react-razorpay";
+import { usePayment } from "@/hooks/use-payment";
 import { 
-  createRazorpayOptions, 
   generateOrderId, 
-  validatePaymentResponse, 
   formatAmount,
   calculateDeliveryCharge,
   calculateTax,
   calculateGroupDiscount,
-  PAYMENT_METHODS,
-  type RazorpayResponse 
+  PAYMENT_METHODS
 } from "@/lib/razorpay";
 
 const VendorDashboard = () => {
@@ -35,7 +32,6 @@ const VendorDashboard = () => {
   // Payment-related states
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [paymentDetails, setPaymentDetails] = useState(null);
-  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState("upi");
   const [orderQuantity, setOrderQuantity] = useState(1);
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
   
@@ -51,7 +47,7 @@ const VendorDashboard = () => {
   
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { error, isLoading, Razorpay } = useRazorpay();
+  const { processRazorpayPayment, processCODPayment, isProcessing, isLoading, error } = usePayment();
   
   // User details for payment prefill
   const [userDetails, setUserDetails] = useState({
@@ -356,98 +352,68 @@ const VendorDashboard = () => {
     setShowPaymentModal(true);
   };
 
-  const processPayment = async () => {
+  const processPayment = async (paymentType: 'online' | 'cod') => {
     if (!paymentDetails) return;
+    
+    console.log('🔧 ProcessPayment Debug:');
+    console.log('📦 Payment Details:', paymentDetails);
+    console.log('💳 Payment Type:', paymentType);
+    console.log('👤 User Details:', userDetails);
+    console.log('⏳ isProcessing:', isProcessing);
+    console.log('⏳ isLoading:', isLoading);
+    console.log('❌ error:', error);
     
     setIsProcessingPayment(true);
     
     try {
-      // Handle Cash on Delivery separately
-      if (selectedPaymentMethod === "cod") {
-        await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate processing
-        
-        if (paymentDetails.type === 'individual') {
-          toast({
-            title: "Order Placed Successfully! 🎉",
-            description: `COD order for ${paymentDetails.product} - ${formatAmount(paymentDetails.total)}. Pay when delivered.`,
-          });
-        } else {
-          toast({
-            title: "Order Placed Successfully! 🎉", 
-            description: `Joined ${paymentDetails.group.product} group - ${formatAmount(paymentDetails.total)}. Pay when delivered.`,
-          });
-        }
+      // Handle Cash on Delivery
+      if (paymentType === "cod") {
+        const codPaymentData = {
+          type: paymentDetails.type as 'individual' | 'group',
+          orderId: paymentDetails.orderId,
+          total: paymentDetails.total,
+          description: paymentDetails.type === 'individual' 
+            ? `Order for ${paymentDetails.product}`
+            : `Group order for ${paymentDetails.group.product}`,
+          supplier: paymentDetails.supplier,
+          product: paymentDetails.type === 'individual' ? paymentDetails.product : paymentDetails.group.product,
+          group: paymentDetails.group,
+          quantity: paymentDetails.quantity
+        };
 
-        setShowPaymentModal(false);
-        setPaymentDetails(null);
-        setSelectedPaymentMethod("upi");
-        return;
-      }
-
-      // Razorpay integration for online payments
-      if (!Razorpay) {
-        toast({
-          title: "Payment Error",
-          description: "Payment service is not available. Please try again.",
-          variant: "destructive"
+        await processCODPayment(codPaymentData, () => {
+          setShowPaymentModal(false);
+          setPaymentDetails(null);
         });
         return;
       }
 
-      const orderDescription = paymentDetails.type === 'individual' 
-        ? `${paymentDetails.product} from ${paymentDetails.supplier.name}`
-        : `${paymentDetails.group.product} - Group Order`;
+      // Handle Online Payments with Razorpay
+      const razorpayPaymentData = {
+        type: paymentDetails.type as 'individual' | 'group',
+        orderId: paymentDetails.orderId,
+        total: paymentDetails.total,
+        description: paymentDetails.type === 'individual' 
+          ? `Order for ${paymentDetails.product}`
+          : `Group order for ${paymentDetails.group.product}`,
+        supplier: paymentDetails.supplier,
+        product: paymentDetails.type === 'individual' ? paymentDetails.product : paymentDetails.group.product,
+        group: paymentDetails.group,
+        quantity: paymentDetails.quantity
+      };
 
-      // Create Razorpay options
-      const options = createRazorpayOptions(
-        paymentDetails.total,
-        paymentDetails.orderId,
-        orderDescription,
+      await processRazorpayPayment(
+        razorpayPaymentData,
         userDetails,
-        (response: RazorpayResponse) => {
-          // Payment success callback
-          if (validatePaymentResponse(response)) {
-            if (paymentDetails.type === 'individual') {
-              toast({
-                title: "Payment Successful! 🎉",
-                description: `Order placed for ${paymentDetails.product} - ${formatAmount(paymentDetails.total)}`,
-              });
-            } else {
-              toast({
-                title: "Payment Successful! 🎉", 
-                description: `Joined ${paymentDetails.group.product} group - ${formatAmount(paymentDetails.total)}`,
-              });
-            }
-
-            // Here you would typically send the payment details to your backend
-            console.log('Payment successful:', response);
-            
-            setShowPaymentModal(false);
-            setPaymentDetails(null);
-            setSelectedPaymentMethod("upi");
-          } else {
-            toast({
-              title: "Payment Verification Failed",
-              description: "Please contact support if amount was deducted.",
-              variant: "destructive"
-            });
-          }
-          setIsProcessingPayment(false);
+        (response) => {
+          console.log('Payment successful:', response);
+          setShowPaymentModal(false);
+          setPaymentDetails(null);
         },
-        () => {
-          // Payment dismissed callback
-          toast({
-            title: "Payment Cancelled",
-            description: "You can try again when ready.",
-            variant: "destructive"
-          });
-          setIsProcessingPayment(false);
+        (error) => {
+          console.error('Payment failed:', error);
         }
       );
-
-      // Open Razorpay checkout
-      const razorpayInstance = new Razorpay(options);
-      razorpayInstance.open();
       
     } catch (error) {
       console.error('Payment error:', error);
@@ -456,6 +422,7 @@ const VendorDashboard = () => {
         description: "Please try again or use a different payment method.",
         variant: "destructive"
       });
+    } finally {
       setIsProcessingPayment(false);
     }
   };
@@ -2059,196 +2026,90 @@ const VendorDashboard = () => {
                 )}
               </div>
 
-              {/* Payment Methods */}
+              {/* Payment Options */}
               <div className="space-y-4">
-                <h3 className="text-lg font-semibold">Payment Method</h3>
+                <h3 className="text-lg font-semibold">Choose Payment Method</h3>
                 
                 <div className="space-y-3">
-                  {/* UPI Payment */}
-                  <label className="flex items-center gap-3 p-3 border rounded-lg cursor-pointer hover:bg-gray-50">
-                    <input
-                      type="radio"
-                      name="paymentMethod"
-                      value="upi"
-                      checked={selectedPaymentMethod === "upi"}
-                      onChange={(e) => setSelectedPaymentMethod(e.target.value)}
-                      className="w-4 h-4 text-blue-600"
-                    />
-                    <Smartphone className="w-5 h-5 text-green-600" />
-                    <div className="flex-1">
-                      <div className="font-medium">UPI Payment</div>
-                      <div className="text-sm text-gray-500">Pay using UPI apps like GPay, PhonePe, Paytm</div>
-                    </div>
-                  </label>
-
-                  {/* Credit/Debit Card */}
-                  <label className="flex items-center gap-3 p-3 border rounded-lg cursor-pointer hover:bg-gray-50">
-                    <input
-                      type="radio"
-                      name="paymentMethod"
-                      value="card"
-                      checked={selectedPaymentMethod === "card"}
-                      onChange={(e) => setSelectedPaymentMethod(e.target.value)}
-                      className="w-4 h-4 text-blue-600"
-                    />
-                    <CreditCard className="w-5 h-5 text-blue-600" />
-                    <div className="flex-1">
-                      <div className="font-medium">Credit/Debit Card</div>
-                      <div className="text-sm text-gray-500">Visa, Mastercard, RuPay accepted</div>
-                    </div>
-                  </label>
-
-                  {/* Net Banking */}
-                  <label className="flex items-center gap-3 p-3 border rounded-lg cursor-pointer hover:bg-gray-50">
-                    <input
-                      type="radio"
-                      name="paymentMethod"
-                      value="netbanking"
-                      checked={selectedPaymentMethod === "netbanking"}
-                      onChange={(e) => setSelectedPaymentMethod(e.target.value)}
-                      className="w-4 h-4 text-blue-600"
-                    />
-                    <Building className="w-5 h-5 text-purple-600" />
-                    <div className="flex-1">
-                      <div className="font-medium">Net Banking</div>
-                      <div className="text-sm text-gray-500">All major banks supported</div>
-                    </div>
-                  </label>
-
-                  {/* Wallet */}
-                  <label className="flex items-center gap-3 p-3 border rounded-lg cursor-pointer hover:bg-gray-50">
-                    <input
-                      type="radio"
-                      name="paymentMethod"
-                      value="wallet"
-                      checked={selectedPaymentMethod === "wallet"}
-                      onChange={(e) => setSelectedPaymentMethod(e.target.value)}
-                      className="w-4 h-4 text-blue-600"
-                    />
-                    <Wallet className="w-5 h-5 text-orange-600" />
-                    <div className="flex-1">
-                      <div className="font-medium">Digital Wallets</div>
-                      <div className="text-sm text-gray-500">Paytm, Mobikwik, Amazon Pay</div>
-                    </div>
-                  </label>
+                  {/* Online Payment Button */}
+                  <Button
+                    onClick={() => processPayment('online')}
+                    disabled={isProcessingPayment}
+                    className="w-full h-16 bg-blue-600 hover:bg-blue-700 text-white text-lg font-semibold"
+                  >
+                    {isProcessingPayment ? (
+                      <div className="flex items-center gap-2">
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                        Processing...
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-3">
+                        <CreditCard className="w-6 h-6" />
+                        <div className="text-left">
+                          <div>Pay Online - {formatAmount(paymentDetails.total)}</div>
+                          <div className="text-sm font-normal opacity-90">UPI • Cards • Net Banking • Wallets</div>
+                        </div>
+                      </div>
+                    )}
+                  </Button>
 
                   {/* Cash on Delivery (only for individual orders) */}
                   {paymentDetails.type === 'individual' && (
-                    <label className="flex items-center gap-3 p-3 border rounded-lg cursor-pointer hover:bg-gray-50">
-                      <input
-                        type="radio"
-                        name="paymentMethod"
-                        value="cod"
-                        checked={selectedPaymentMethod === "cod"}
-                        onChange={(e) => setSelectedPaymentMethod(e.target.value)}
-                        className="w-4 h-4 text-blue-600"
-                      />
-                      <Truck className="w-5 h-5 text-gray-600" />
-                      <div className="flex-1">
-                        <div className="font-medium">Cash on Delivery</div>
-                        <div className="text-sm text-gray-500">Pay when you receive the order</div>
-                      </div>
-                    </label>
+                    <Button
+                      onClick={() => processPayment('cod')}
+                      disabled={isProcessingPayment}
+                      variant="outline"
+                      className="w-full h-16 border-2 border-gray-300 hover:border-gray-400 text-lg font-semibold"
+                    >
+                      {isProcessingPayment ? (
+                        <div className="flex items-center gap-2">
+                          <div className="w-4 h-4 border-2 border-gray-600 border-t-transparent rounded-full animate-spin"></div>
+                          Processing...
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-3">
+                          <Truck className="w-6 h-6 text-gray-600" />
+                          <div className="text-left">
+                            <div className="text-gray-900">Cash on Delivery - {formatAmount(paymentDetails.total)}</div>
+                            <div className="text-sm font-normal text-gray-500">Pay when you receive the order</div>
+                          </div>
+                        </div>
+                      )}
+                    </Button>
                   )}
                 </div>
-
-                {/* Payment Form Fields */}
-                {selectedPaymentMethod === "card" && (
-                  <div className="bg-gray-50 rounded-lg p-4 space-y-3">
-                    <div>
-                      <label className="block text-sm font-medium mb-1">Card Number</label>
-                      <input type="text" placeholder="1234 5678 9012 3456" className="w-full border rounded px-3 py-2" />
-                    </div>
-                    <div className="grid grid-cols-2 gap-3">
-                      <div>
-                        <label className="block text-sm font-medium mb-1">Expiry</label>
-                        <input type="text" placeholder="MM/YY" className="w-full border rounded px-3 py-2" />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium mb-1">CVV</label>
-                        <input type="text" placeholder="123" className="w-full border rounded px-3 py-2" />
-                      </div>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium mb-1">Cardholder Name</label>
-                      <input type="text" placeholder="Full Name" className="w-full border rounded px-3 py-2" />
-                    </div>
-                  </div>
-                )}
-
-                {selectedPaymentMethod === "upi" && (
-                  <div className="bg-gray-50 rounded-lg p-4">
-                    <label className="block text-sm font-medium mb-2">UPI ID</label>
-                    <input type="text" placeholder="yourname@upi" className="w-full border rounded px-3 py-2" />
-                  </div>
-                )}
-
-                {selectedPaymentMethod === "netbanking" && (
-                  <div className="bg-gray-50 rounded-lg p-4">
-                    <label className="block text-sm font-medium mb-2">Select Bank</label>
-                    <select className="w-full border rounded px-3 py-2">
-                      <option>State Bank of India</option>
-                      <option>HDFC Bank</option>
-                      <option>ICICI Bank</option>
-                      <option>Axis Bank</option>
-                      <option>Bank of Baroda</option>
-                      <option>Punjab National Bank</option>
-                    </select>
-                  </div>
-                )}
               </div>
-            </div>
 
-            {/* Security Notice */}
-            <div className="mt-6 bg-green-50 border border-green-200 rounded-lg p-3">
-              <div className="flex items-center gap-2">
-                <Shield className="w-4 h-4 text-green-600" />
-                <span className="text-sm text-green-800 font-medium">Secure Payment</span>
-              </div>
-              <p className="text-xs text-green-700 mt-1">
-                Your payment information is encrypted and secure. We don't store your payment details.
-                {selectedPaymentMethod !== 'cod' && ' Powered by Razorpay.'}
-              </p>
-            </div>
-
-            {/* Razorpay Error Display */}
-            {error && (
-              <div className="mt-4 bg-red-50 border border-red-200 rounded-lg p-3">
+              {/* Security Notice */}
+              <div className="mt-6 bg-green-50 border border-green-200 rounded-lg p-3">
                 <div className="flex items-center gap-2">
-                  <X className="w-4 h-4 text-red-600" />
-                  <span className="text-sm text-red-800 font-medium">Payment Service Error</span>
+                  <Shield className="w-4 h-4 text-green-600" />
+                  <span className="text-sm text-green-800 font-medium">Secure Payment</span>
                 </div>
-                <p className="text-xs text-red-700 mt-1">
-                  Unable to load payment service. Please refresh the page and try again.
+                <p className="text-xs text-green-700 mt-1">
+                  Your payment information is encrypted and secure. We don't store your payment details. Powered by Razorpay.
                 </p>
               </div>
-            )}
 
-            {/* Action Buttons */}
-            <div className="flex justify-end gap-3 mt-6">
-              <Button variant="outline" onClick={() => setShowPaymentModal(false)}>
-                Cancel
-              </Button>
-              <Button 
-                onClick={processPayment}
-                disabled={isProcessingPayment || (selectedPaymentMethod !== 'cod' && (isLoading || error))}
-                className="bg-green-600 hover:bg-green-700 text-white px-8"
-              >
-                {isProcessingPayment ? (
+              {/* Razorpay Error Display */}
+              {error && (
+                <div className="mt-4 bg-red-50 border border-red-200 rounded-lg p-3">
                   <div className="flex items-center gap-2">
-                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                    Processing...
+                    <X className="w-4 h-4 text-red-600" />
+                    <span className="text-sm text-red-800 font-medium">Payment Service Error</span>
                   </div>
-                ) : (
-                  <div className="flex items-center gap-2">
-                    <CheckCircle2 className="w-4 h-4" />
-                    {selectedPaymentMethod === 'cod' 
-                      ? `Place Order ${formatAmount(paymentDetails.total)}`
-                      : `Pay ${formatAmount(paymentDetails.total)}`
-                    }
-                  </div>
-                )}
-              </Button>
+                  <p className="text-xs text-red-700 mt-1">
+                    {typeof error === 'string' ? error : 'Unable to load payment service. Please refresh the page and try again.'}
+                  </p>
+                </div>
+              )}
+
+              {/* Action Buttons */}
+              <div className="flex justify-end gap-3 mt-6">
+                <Button variant="outline" onClick={() => setShowPaymentModal(false)} className="px-6">
+                  Cancel
+                </Button>
+              </div>
             </div>
           </div>
         </div>
