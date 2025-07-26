@@ -8,6 +8,9 @@ import VendorLogin from "./pages/auth/VendorLogin";
 import SupplierLogin from "./pages/auth/SupplierLogin";
 import VendorDashboard from "./pages/vendor/VendorDashboard";
 import SupplierDashboard from "./pages/supplier/SupplierDashboard";
+import SupplierDetails from "./pages/vendor/SupplierDetails";
+import OrderSummary from "./pages/vendor/OrderSummary";
+import CreateOrder from "./pages/vendor/CreateOrder";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -23,6 +26,9 @@ const App = () => (
           <Route path="/vendor/login" element={<VendorLogin />} />
           <Route path="/supplier/login" element={<SupplierLogin />} />
           <Route path="/vendor/dashboard" element={<VendorDashboard />} />
+          <Route path="/vendor/supplier/:supplierId" element={<SupplierDetails />} />
+          <Route path="/vendor/order-summary" element={<OrderSummary />} />
+          <Route path="/vendor/create-order" element={<CreateOrder />} />
           <Route path="/supplier/dashboard" element={<SupplierDashboard />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />

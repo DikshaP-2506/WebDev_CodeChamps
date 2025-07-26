@@ -14,24 +14,28 @@ const VendorDashboard = () => {
     {
       id: 1,
       supplier: "Fresh Foods Co.",
+      supplierId: "1",
       product: "Tomatoes",
       targetQty: "500 kg",
       currentQty: "320 kg",
       pricePerKg: "₹25",
       deadline: "2 days left",
       location: "Sector 15",
+      deliveryAddress: "Sector 15, Market Area, Near City Mall",
       participants: 12,
       status: "Active"
     },
     {
       id: 2,
       supplier: "Green Valley Supplies",
+      supplierId: "2", 
       product: "Onions",
       targetQty: "300 kg",
       currentQty: "280 kg",
       pricePerKg: "₹18",
       deadline: "1 day left",
       location: "Sector 22",
+      deliveryAddress: "Sector 22, Wholesale Market, Gate No. 3",
       participants: 8,
       status: "Almost Full"
     }
@@ -41,11 +45,13 @@ const VendorDashboard = () => {
     {
       id: 1,
       supplier: "City Wholesale",
+      supplierId: "3",
       product: "Mixed Vegetables",
       minQty: "100 kg",
       pricePerKg: "₹22",
       deliveryTime: "Next day",
       location: "Sector 18",
+      deliveryAddress: "Sector 18, Fresh Market Complex",
       rating: 4.5
     }
   ];
@@ -136,8 +142,13 @@ const VendorDashboard = () => {
                   <CardContent className="p-6">
                     <div className="flex justify-between items-start mb-4">
                       <div>
-                        <h3 className="text-lg font-semibold">{order.product}</h3>
-                        <p className="text-muted-foreground">by {order.supplier}</p>
+                        <button 
+                          onClick={() => navigate(`/vendor/supplier/${order.supplierId}`)}
+                          className="text-left hover:text-vendor transition-colors"
+                        >
+                          <h3 className="text-lg font-semibold hover:underline">{order.product}</h3>
+                          <p className="text-muted-foreground">by {order.supplier}</p>
+                        </button>
                       </div>
                       <Badge variant={order.status === "Active" ? "default" : "secondary"}>
                         {order.status}
@@ -167,10 +178,16 @@ const VendorDashboard = () => {
                       </div>
                     </div>
                     
-                    <div className="flex items-center justify-between">
+                    <div className="mb-3">
                       <div className="flex items-center text-sm text-muted-foreground">
                         <MapPin className="w-4 h-4 mr-1" />
-                        {order.location}
+                        <span className="text-xs">Delivery: {order.deliveryAddress}</span>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center text-sm text-muted-foreground">
+                        <span>Area: {order.location}</span>
                       </div>
                       <Button variant="vendor" size="sm">
                         Join Group
@@ -189,8 +206,13 @@ const VendorDashboard = () => {
                   <CardContent className="p-6">
                     <div className="flex justify-between items-start mb-4">
                       <div>
-                        <h3 className="text-lg font-semibold">{offer.product}</h3>
-                        <p className="text-muted-foreground">by {offer.supplier}</p>
+                        <button 
+                          onClick={() => navigate(`/vendor/supplier/${offer.supplierId}`)}
+                          className="text-left hover:text-vendor transition-colors"
+                        >
+                          <h3 className="text-lg font-semibold hover:underline">{offer.product}</h3>
+                          <p className="text-muted-foreground">by {offer.supplier}</p>
+                        </button>
                       </div>
                       <Badge variant="outline">
                         ⭐ {offer.rating}
@@ -219,10 +241,21 @@ const VendorDashboard = () => {
                         </div>
                       </div>
                     </div>
+
+                    <div className="mb-3">
+                      <div className="flex items-center text-sm text-muted-foreground">
+                        <MapPin className="w-4 h-4 mr-1" />
+                        <span className="text-xs">Delivery: {offer.deliveryAddress}</span>
+                      </div>
+                    </div>
                     
                     <div className="flex justify-end">
-                      <Button variant="default" size="sm">
-                        Place Order
+                      <Button 
+                        variant="default" 
+                        size="sm"
+                        onClick={() => navigate(`/vendor/supplier/${offer.supplierId}`)}
+                      >
+                        View Supplier
                       </Button>
                     </div>
                   </CardContent>
