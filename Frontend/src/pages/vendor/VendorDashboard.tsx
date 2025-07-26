@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Users, ShoppingCart, Package, Clock, MapPin, Filter, Search, TrendingUp } from "lucide-react";
+import { Plus, Users, ShoppingCart, Package, Clock, MapPin, Filter, Search, TrendingUp, User, Edit, Camera, Mail, Phone, Building, Shield, Star, Calendar } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 
@@ -16,6 +16,8 @@ const VendorDashboard = () => {
   const [showSupplierModal, setShowSupplierModal] = useState(false);
   const [selectedSupplier, setSelectedSupplier] = useState(null);
   const [showGroupSuggestionsModal, setShowGroupSuggestionsModal] = useState(false);
+  const [showProfileEditModal, setShowProfileEditModal] = useState(false);
+  const [showHamburgerMenu, setShowHamburgerMenu] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -246,11 +248,58 @@ const VendorDashboard = () => {
               <h1 className="text-2xl font-bold text-white">MarketConnect</h1>
             </div>
             <div className="flex items-center gap-4">
-              <button className="p-2 hover:bg-blue-500 rounded-lg text-white">
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-                </svg>
-              </button>
+              <div className="relative">
+                <button 
+                  className="p-2 hover:bg-blue-500 rounded-lg text-white"
+                  onClick={() => setShowHamburgerMenu(!showHamburgerMenu)}
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                  </svg>
+                </button>
+                
+                {/* Hamburger Menu Dropdown */}
+                {showHamburgerMenu && (
+                  <div className="absolute right-0 top-12 bg-white rounded-lg shadow-lg border min-w-[200px] z-50">
+                    <div className="py-2">
+                      <button 
+                        className="w-full px-4 py-2 text-left hover:bg-gray-50 flex items-center gap-3"
+                        onClick={() => {
+                          setShowProfileEditModal(true);
+                          setShowHamburgerMenu(false);
+                        }}
+                      >
+                        <User className="w-4 h-4 text-gray-500" />
+                        <span className="text-gray-700">My Profile</span>
+                      </button>
+                      <button 
+                        className="w-full px-4 py-2 text-left hover:bg-gray-50 flex items-center gap-3"
+                        onClick={() => setShowHamburgerMenu(false)}
+                      >
+                        <Shield className="w-4 h-4 text-gray-500" />
+                        <span className="text-gray-700">Account Settings</span>
+                      </button>
+                      <button 
+                        className="w-full px-4 py-2 text-left hover:bg-gray-50 flex items-center gap-3"
+                        onClick={() => setShowHamburgerMenu(false)}
+                      >
+                        <Phone className="w-4 h-4 text-gray-500" />
+                        <span className="text-gray-700">Help & Support</span>
+                      </button>
+                      <hr className="my-2" />
+                      <button 
+                        className="w-full px-4 py-2 text-left hover:bg-gray-50 flex items-center gap-3 text-red-600"
+                        onClick={() => setShowHamburgerMenu(false)}
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                        </svg>
+                        <span>Logout</span>
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
               <div className="w-8 h-8 bg-blue-500 rounded-full"></div>
             </div>
           </div>
@@ -691,6 +740,119 @@ const VendorDashboard = () => {
                     );
                   })}
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {/* Profile Edit Modal */}
+      {showProfileEditModal && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
+          <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-2xl border max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-start mb-6">
+              <h2 className="text-2xl font-semibold">Edit Profile</h2>
+              <button 
+                onClick={() => setShowProfileEditModal(false)}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="space-y-6">
+              {/* Business Information */}
+              <div>
+                <h3 className="text-lg font-semibold mb-4">Business Information</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Business Name</label>
+                    <input type="text" defaultValue="Kumar Enterprises" className="w-full border rounded px-3 py-2" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Business Type</label>
+                    <select className="w-full border rounded px-3 py-2">
+                      <option>Retail & Wholesale</option>
+                      <option>Retail Only</option>
+                      <option>Wholesale Only</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-2">GST Number</label>
+                    <input type="text" defaultValue="07AABCU9603R1ZM" className="w-full border rounded px-3 py-2" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Monthly Budget</label>
+                    <select className="w-full border rounded px-3 py-2">
+                      <option>₹50,000 - ₹1,00,000</option>
+                      <option>₹1,00,000 - ₹2,00,000</option>
+                      <option>₹2,00,000+</option>
+                    </select>
+                  </div>
+                  <div className="md:col-span-2">
+                    <label className="block text-sm font-medium mb-2">Business Address</label>
+                    <textarea 
+                      defaultValue="123, Commercial Street, Sector 15, Mumbai, Maharashtra 400001"
+                      className="w-full border rounded px-3 py-2"
+                      rows={3}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Contact Information */}
+              <div>
+                <h3 className="text-lg font-semibold mb-4">Contact Information</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Primary Email</label>
+                    <input type="email" defaultValue="rajesh@kumarenterprises.com" className="w-full border rounded px-3 py-2" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Phone Number</label>
+                    <input type="tel" defaultValue="+91 98765 43210" className="w-full border rounded px-3 py-2" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-2">WhatsApp</label>
+                    <input type="tel" defaultValue="+91 98765 43210" className="w-full border rounded px-3 py-2" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Alternative Phone</label>
+                    <input type="tel" defaultValue="+91 99876 54321" className="w-full border rounded px-3 py-2" />
+                  </div>
+                </div>
+              </div>
+
+              {/* Preferences */}
+              <div>
+                <h3 className="text-lg font-semibold mb-4">Preferences</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Delivery Preference</label>
+                    <select className="w-full border rounded px-3 py-2">
+                      <option>Next Day Delivery</option>
+                      <option>Same Day Delivery</option>
+                      <option>Standard Delivery</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Payment Method</label>
+                    <select className="w-full border rounded px-3 py-2">
+                      <option>Bank Transfer, UPI</option>
+                      <option>Cash on Delivery</option>
+                      <option>Credit Terms</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <div className="flex justify-end gap-2 mt-6">
+              <Button variant="outline" onClick={() => setShowProfileEditModal(false)}>
+                Cancel
+              </Button>
+              <Button className="bg-indigo-600 hover:bg-indigo-700 text-white">
+                Save Changes
+              </Button>
             </div>
           </div>
         </div>
