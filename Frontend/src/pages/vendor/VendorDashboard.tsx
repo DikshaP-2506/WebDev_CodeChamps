@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Users, ShoppingCart, Package, Clock, MapPin, Filter, Search } from "lucide-react";
+import { Plus, Users, ShoppingCart, Package, Clock, MapPin, Filter, Search, TrendingUp } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 
@@ -74,7 +74,8 @@ const VendorDashboard = () => {
       location: "Sector 15",
       deliveryAddress: "Sector 15, Market Area, Near City Mall",
       participants: 12,
-      status: "Active"
+      status: "Active",
+      discount: "15%"
     },
     {
       id: 2,
@@ -88,7 +89,8 @@ const VendorDashboard = () => {
       location: "Sector 22",
       deliveryAddress: "Sector 22, Wholesale Market, Gate No. 3",
       participants: 8,
-      status: "Almost Full"
+      status: "Almost Full",
+      discount: "10%"
     }
   ];
 
@@ -124,6 +126,54 @@ const VendorDashboard = () => {
     }
   ];
 
+  // Example supplier data for grid layout
+  const suppliers = [
+    {
+      id: 1,
+      image: "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=400&q=80",
+      name: "Quality Foods",
+      product: "Rice - Grains",
+      price: "₹52/kg",
+      location: "Thane",
+      verified: true,
+      memberYears: 3,
+      rating: 4.8,
+    },
+    {
+      id: 2,
+      image: "https://images.unsplash.com/photo-1465101046530-73398c7f28ca?auto=format&fit=crop&w=400&q=80",
+      name: "ABC Suppliers",
+      product: "Rice - Grains",
+      price: "₹50/kg",
+      location: "Mumbai",
+      verified: true,
+      memberYears: 5,
+      rating: 4.5,
+    },
+    {
+      id: 3,
+      image: "https://images.unsplash.com/photo-1502741338009-cac2772e18bc?auto=format&fit=crop&w=400&q=80",
+      name: "Spice Masters",
+      product: "Turmeric - Spices",
+      price: "₹200/kg",
+      location: "Nashik",
+      verified: false,
+      memberYears: 2,
+      rating: 4.6,
+    },
+    {
+      id: 4,
+      image: "https://images.unsplash.com/photo-1519864600265-abb23847ef2c?auto=format&fit=crop&w=400&q=80",
+      name: "XYZ Traders",
+      product: "Rice - Grains",
+      price: "₹48/kg",
+      location: "Pune",
+      verified: true,
+      memberYears: 4,
+      rating: 4.2,
+    },
+  ];
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
@@ -131,18 +181,15 @@ const VendorDashboard = () => {
         <div className="container mx-auto px-4 py-4">
           <div className="flex justify-between items-center">
             <div>
-              <h1 className="text-2xl font-bold text-foreground">Vendor Dashboard</h1>
-              <p className="text-muted-foreground">Welcome back, Rajesh Kumar</p>
+              <h1 className="text-2xl font-bold text-blue-600">MarketConnect</h1>
             </div>
-            <div className="flex gap-3">
-              <Button variant="outline" onClick={() => navigate('/vendor/orders')}>
-                <ShoppingCart className="w-4 h-4 mr-2" />
-                My Orders
-              </Button>
-              <Button variant="vendor" onClick={() => navigate('/vendor/create-order')}>
-                <Plus className="w-4 h-4 mr-2" />
-                Create Order
-              </Button>
+            <div className="flex items-center gap-4">
+              <button className="p-2 hover:bg-gray-100 rounded-lg">
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                </svg>
+              </button>
+              <div className="w-8 h-8 bg-gray-300 rounded-full"></div>
             </div>
           </div>
         </div>
@@ -151,23 +198,31 @@ const VendorDashboard = () => {
       {/* Main Content */}
       <div className="container mx-auto px-4 py-6">
         {/* Stats Cards */}
-        <div className="grid md:grid-cols-4 gap-6 mb-8">
+        <div className="grid md:grid-cols-4 gap-4 mb-6">
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Active Orders</CardTitle>
+              <CardTitle className="text-sm font-medium text-muted-foreground">Total Orders</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">5</div>
-              <p className="text-xs text-muted-foreground">+2 from last week</p>
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
+                  <Package className="w-4 h-4 text-blue-600" />
+                </div>
+                <div className="text-2xl font-bold">24</div>
+              </div>
             </CardContent>
           </Card>
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Total Savings</CardTitle>
+              <CardTitle className="text-sm font-medium text-muted-foreground">This Month</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">₹12,450</div>
-              <p className="text-xs text-muted-foreground">Through group orders</p>
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">
+                  <TrendingUp className="w-4 h-4 text-green-600" />
+                </div>
+                <div className="text-2xl font-bold">₹45,200</div>
+              </div>
             </CardContent>
           </Card>
           <Card>
@@ -175,35 +230,82 @@ const VendorDashboard = () => {
               <CardTitle className="text-sm font-medium text-muted-foreground">Group Orders</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">23</div>
-              <p className="text-xs text-muted-foreground">Joined this month</p>
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center">
+                  <Users className="w-4 h-4 text-purple-600" />
+                </div>
+                <div className="text-2xl font-bold">3</div>
+              </div>
             </CardContent>
           </Card>
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Suppliers</CardTitle>
+              <CardTitle className="text-sm font-medium text-muted-foreground">Avg Rating</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">8</div>
-              <p className="text-xs text-muted-foreground">Trusted partners</p>
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 bg-yellow-100 rounded-lg flex items-center justify-center">
+                  <span className="text-yellow-600">⭐</span>
+                </div>
+                <div className="text-2xl font-bold">4.6</div>
+              </div>
             </CardContent>
           </Card>
         </div>
 
         {/* Orders Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <div className="flex justify-between items-center">
-            <TabsList className="grid w-fit grid-cols-2">
-              <TabsTrigger value="group">Group Orders</TabsTrigger>
-              <TabsTrigger value="individual">Individual Orders</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-4 bg-gray-100 p-1 rounded-lg">
+            <TabsTrigger value="individual" className="data-[state=active]:bg-white data-[state=active]:shadow-sm">Browse Suppliers</TabsTrigger>
+            <TabsTrigger value="group" className="data-[state=active]:bg-white data-[state=active]:shadow-sm">Group Orders</TabsTrigger>
+            <TabsTrigger value="my-orders" className="data-[state=active]:bg-white data-[state=active]:shadow-sm">My Orders</TabsTrigger>
+            <TabsTrigger value="price-trends" className="data-[state=active]:bg-white data-[state=active]:shadow-sm">Price Trends</TabsTrigger>
             </TabsList>
-            <Button variant="outline" size="sm">
-              <Filter className="w-4 h-4 mr-2" />
-              Filter
-            </Button>
-          </div>
+
+          <TabsContent value="individual" className="space-y-4">
+            <div className="mb-6">
+              <h2 className="text-2xl font-bold mb-2 text-gray-900">Find Suppliers</h2>
+              <p className="text-gray-500 mb-4">Search and filter suppliers based on your needs</p>
+              <div className="flex gap-4 mb-6 items-center">
+                <div className="relative flex-1">
+                  <input
+                    type="text"
+                    placeholder="Search for materials, suppliers..."
+                    className="w-full pl-10 pr-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 bg-white"
+                  />
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                </div>
+                <Button variant="outline" className="flex items-center gap-2 font-medium text-gray-700 border-gray-300 hover:bg-gray-100">
+                  <Filter className="w-4 h-4" /> Filters
+                </Button>
+              </div>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+              {suppliers.map(supplier => (
+                <div key={supplier.id} className="bg-white rounded-xl shadow-md hover:shadow-lg transition p-4 flex flex-col">
+                  <img src={supplier.image} alt={supplier.name} className="h-40 w-full object-cover rounded-lg mb-3" />
+                  <div className="font-semibold text-lg text-gray-900">{supplier.product}</div>
+                  <div className="text-gray-600 text-sm">{supplier.name}</div>
+                  <div className="flex items-center text-xs text-gray-500 mt-1 mb-2">
+                    <span>{supplier.location}</span>
+                    {supplier.verified && <span className="ml-2 bg-green-100 text-green-700 px-2 py-0.5 rounded">Verified</span>}
+                  </div>
+                  <div className="text-blue-700 font-bold text-lg mb-1">{supplier.price}</div>
+                  <div className="flex items-center text-xs text-gray-500 mb-3">
+                    <span>Member: {supplier.memberYears} yrs</span>
+                    <span className="ml-2">⭐ {supplier.rating}</span>
+                  </div>
+                  <button className="bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg font-semibold transition">Order Now</button>
+                </div>
+              ))}
+            </div>
+          </TabsContent>
 
           <TabsContent value="group" className="space-y-4">
+            <div className="mb-6">
+              <h2 className="text-2xl font-bold mb-2 text-gray-900">Group Orders</h2>
+              <p className="text-gray-500 mb-4">Join group orders for bulk discounts</p>
+            </div>
             <div className="flex items-center mb-4">
               <div className="relative w-full max-w-md">
                 <input
@@ -211,159 +313,86 @@ const VendorDashboard = () => {
                   placeholder="Search product groups..."
                   value={groupSearch}
                   onChange={e => setGroupSearch(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-vendor"
+                  className="w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 bg-white"
                 />
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
               </div>
             </div>
-            <div className="grid gap-4">
+            <div className="space-y-4">
               {groupOrders
                 .filter(order => {
-                  // Only show if deadline is in the future
                   const now = new Date();
                   const deadline = new Date(order.deadline);
                   return deadline > now && order.product.toLowerCase().includes(groupSearch.toLowerCase());
                 })
-                .map((order) => (
-                <Card key={order.id} className="hover:shadow-lg transition-all duration-300">
-                  <CardContent className="p-6">
-                    <div className="flex justify-between items-start mb-4">
-                      <div>
-                        <button 
-                          onClick={() => navigate(`/vendor/supplier/${order.supplierId}`)}
-                          className="text-left hover:text-vendor transition-colors"
-                        >
-                          <h3 className="text-lg font-semibold hover:underline">{order.product}</h3>
-                          <p className="text-muted-foreground">by {order.supplier}</p>
-                        </button>
-                      </div>
-                      <Badge variant={order.status === "Active" ? "default" : "secondary"}>
-                        {order.status}
-                      </Badge>
-                    </div>
-                    
-                    <div className="grid md:grid-cols-2 gap-4 mb-4">
-                      <div className="space-y-2">
-                        <div className="flex items-center text-sm">
-                          <Package className="w-4 h-4 mr-2 text-muted-foreground" />
-                          {order.currentQty} / {order.targetQty}
+                .map((order) => {
+                  const progress = Math.min(100, Math.round((parseInt(order.currentQty) / parseInt(order.targetQty)) * 100));
+                  return (
+                    <div key={order.id} className="bg-white rounded-xl shadow-md hover:shadow-lg transition p-5 flex flex-col md:flex-row md:items-center md:justify-between">
+                      <div className="flex-1 mb-4 md:mb-0">
+                        <div className="font-semibold text-lg text-gray-900 mb-1">{order.product} Bulk Order</div>
+                        <div className="text-gray-600 text-sm mb-1">by {order.supplier}</div>
+                        <div className="flex items-center text-xs text-gray-500 mb-2">
+                          <span>{order.participants} members</span>
+                          <span className="mx-2">·</span>
+                          <span>Min order: {order.targetQty}</span>
                         </div>
-                        <div className="flex items-center text-sm">
-                          <Users className="w-4 h-4 mr-2 text-muted-foreground" />
-                          {order.participants} vendors joined
+                        <div className="w-full h-2 bg-gray-200 rounded">
+                          <div className="h-2 bg-blue-500 rounded transition-all" style={{ width: `${progress}%` }} />
                         </div>
                       </div>
-                      <div className="space-y-2">
-                        <div className="flex items-center text-sm">
-                          <span className="font-medium">{order.pricePerKg}</span>
-                          <span className="text-muted-foreground ml-1">per kg</span>
-                        </div>
-                        <div className="flex items-center text-sm">
-                          <Clock className="w-4 h-4 mr-2 text-muted-foreground" />
-                          {formatDeadline(order.deadline)}
-                        </div>
+                      <div className="flex flex-col items-end min-w-[140px]">
+                        <span className="bg-green-100 text-green-700 px-2 py-1 rounded text-xs font-bold mb-1">{order.discount || '15%'} OFF</span>
+                        <span className="text-gray-500 text-xs mb-2">{Math.max(0, (parseInt(order.targetQty) - parseInt(order.currentQty)))} spots left</span>
+                        <button className="bg-black text-white px-4 py-2 rounded font-semibold hover:bg-gray-800 transition" onClick={() => handleJoinGroup(order)}>Join Group</button>
                       </div>
                     </div>
-                    
-                    <div className="mb-3">
-                      <div className="flex items-center text-sm text-muted-foreground">
-                        <MapPin className="w-4 h-4 mr-1" />
-                        <span className="text-xs">Delivery: {order.deliveryAddress}</span>
-                      </div>
-                    </div>
-                    
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center text-sm text-muted-foreground">
-                        <span>Area: {order.location}</span>
-                      </div>
-                      <Button 
-                        variant="vendor" 
-                        size="sm"
-                        onClick={() => handleJoinGroup(order)}
-                      >
-                        Join Group
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+                  );
+                })}
             </div>
           </TabsContent>
 
-          <TabsContent value="individual" className="space-y-4">
+          <TabsContent value="my-orders" className="space-y-4">
             <div className="mb-6">
-              <h2 className="text-2xl font-bold mb-2">Find Suppliers</h2>
-              <p className="text-muted-foreground mb-4">Search and filter suppliers based on your needs</p>
-              <div className="flex gap-4 mb-6">
-                <div className="relative flex-1">
-                  <input
-                    type="text"
-                    placeholder="Search for materials, suppliers..."
-                    className="w-full pl-10 pr-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-vendor"
-                  />
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+              <h2 className="text-2xl font-bold mb-2 text-gray-900">My Orders</h2>
+              <p className="text-gray-500 mb-4">Track your order history</p>
+            </div>
+            <div className="space-y-4">
+              <div className="bg-white rounded-xl shadow-md hover:shadow-lg transition p-5 flex flex-col md:flex-row md:items-center md:justify-between">
+                <div className="flex-1 mb-4 md:mb-0">
+                  <div className="font-semibold text-lg text-gray-900 mb-1">Rice (50kg)</div>
+                  <div className="text-gray-600 text-sm mb-1">ABC Suppliers</div>
+                  <div className="text-xs text-gray-500">2024-01-20</div>
                 </div>
-                <select className="px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-vendor">
-                  <option>All Categories</option>
-                  <option>Grains</option>
-                  <option>Spices</option>
-                  <option>Vegetables</option>
-                </select>
-                <select className="px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-vendor">
-                  <option>All Prices</option>
-                  <option>Under ₹50</option>
-                  <option>₹50-100</option>
-                  <option>Above ₹100</option>
-                </select>
-                <select className="px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-vendor">
-                  <option>Distance</option>
-                  <option>Under 2km</option>
-                  <option>2-5km</option>
-                  <option>Above 5km</option>
-                </select>
+                <div className="flex flex-col items-end min-w-[140px]">
+                  <div className="text-lg font-semibold text-blue-600 mb-2">₹2,500</div>
+                  <div className="text-green-600 text-sm mb-2">Delivered</div>
+                  <Button variant="outline" size="sm" className="font-medium border-gray-300 hover:bg-gray-100">Track</Button>
+                </div>
               </div>
             </div>
-            <div className="grid gap-4">
-              {supplierOffers.map((offer) => (
-                <Card key={offer.id} className="hover:shadow-lg transition-all duration-300">
-                  <CardContent className="p-6">
-                    <div className="flex justify-between items-start">
-                      <div className="flex-1">
-                        <h3 className="text-xl font-semibold mb-1">{offer.supplier}</h3>
-                        <p className="text-lg text-muted-foreground mb-3">{offer.product}</p>
-                        
-                        <div className="flex items-center gap-6 mb-4">
-                          <div className="flex items-center text-sm text-muted-foreground">
-                            <MapPin className="w-4 h-4 mr-1" />
-                            {offer.location}
-                          </div>
-                          <div className="flex items-center text-sm">
-                            <span className="text-yellow-500 mr-1">⭐</span>
-                            {offer.rating}
-                          </div>
-                          <div className="text-lg font-semibold text-vendor">
-                            {offer.pricePerKg}
-                          </div>
-                        </div>
-                        
-                        <Badge variant="outline" className="mb-4">
-                          {offer.product.includes('Rice') ? 'Grains' : 'Spices'}
-                        </Badge>
-                      </div>
-                      
-                      <Button 
-                        variant="default" 
-                        size="lg"
-                        onClick={() => navigate(`/vendor/supplier/${offer.supplierId}`)}
-                        className="bg-black hover:bg-gray-800 text-white"
-                      >
-                        <ShoppingCart className="w-4 h-4 mr-2" />
-                        Order Now
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+          </TabsContent>
+
+          <TabsContent value="price-trends" className="space-y-4">
+            <div className="mb-6">
+              <h2 className="text-2xl font-bold mb-2 text-gray-900">Daily Price Trends</h2>
+              <p className="text-gray-500 mb-4">Track price movements for your items</p>
+            </div>
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="bg-white rounded-xl shadow-md hover:shadow-lg transition p-5 flex items-center justify-between">
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900">Rice</h3>
+                  <p className="text-green-600 text-sm">↓2% from yesterday</p>
+                </div>
+                <div className="text-lg font-semibold text-green-600">₹48/kg</div>
+              </div>
+              <div className="bg-white rounded-xl shadow-md hover:shadow-lg transition p-5 flex items-center justify-between">
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900">Wheat</h3>
+                  <p className="text-red-600 text-sm">↑1.5% from yesterday</p>
+                </div>
+                <div className="text-lg font-semibold text-red-600">₹35/kg</div>
+              </div>
             </div>
           </TabsContent>
         </Tabs>
@@ -428,9 +457,10 @@ const VendorDashboard = () => {
                 Cancel
               </Button>
               <Button 
-                variant="vendor" 
+                variant="default" 
                 onClick={confirmJoinGroup}
                 disabled={joinQuantity <= 0}
+                className="bg-black hover:bg-gray-800 text-white"
               >
                 Confirm Join
               </Button>
