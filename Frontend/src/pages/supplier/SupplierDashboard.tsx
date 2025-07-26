@@ -83,24 +83,21 @@ const SupplierDashboard = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-slate-50">
       {/* Header */}
-      <div className="bg-white shadow-sm border-b">
+      <div className="bg-green-600 shadow-sm">
         <div className="container mx-auto px-4 py-4">
           <div className="flex justify-between items-center">
             <div>
-              <h1 className="text-2xl font-bold text-foreground">Supplier Dashboard</h1>
-              <p className="text-muted-foreground">Welcome back, Green Valley Supplies</p>
+              <h1 className="text-2xl font-bold text-white">Supplier Dashboard</h1>
             </div>
-            <div className="flex gap-3">
-              <Button variant="outline">
-                <Package className="w-4 h-4 mr-2" />
-                Inventory
-              </Button>
-              <Button variant="supplier">
-                <TrendingUp className="w-4 h-4 mr-2" />
-                Analytics
-              </Button>
+            <div className="flex items-center gap-4">
+              <button className="p-2 hover:bg-green-500 rounded-lg text-white">
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                </svg>
+              </button>
+              <div className="w-8 h-8 bg-green-500 rounded-full"></div>
             </div>
           </div>
         </div>
@@ -108,60 +105,24 @@ const SupplierDashboard = () => {
 
       {/* Main Content */}
       <div className="container mx-auto px-4 py-6">
-        {/* Stats Cards */}
-        <div className="grid md:grid-cols-4 gap-6 mb-8">
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Pending Requests</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">8</div>
-              <p className="text-xs text-muted-foreground">+3 new today</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Revenue This Month</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">₹1,24,500</div>
-              <p className="text-xs text-muted-foreground">+15% from last month</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Active Orders</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">12</div>
-              <p className="text-xs text-muted-foreground">6 group, 6 individual</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Vendor Partners</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">45</div>
-              <p className="text-xs text-muted-foreground">Repeat customers</p>
-            </CardContent>
-          </Card>
-        </div>
-
         {/* Orders Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-fit grid-cols-3">
-            <TabsTrigger value="group">Group Requests</TabsTrigger>
-            <TabsTrigger value="individual">Individual Orders</TabsTrigger>
-            <TabsTrigger value="confirmed">Confirmed Orders</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-3 bg-white p-1 rounded-lg border shadow-sm">
+            <TabsTrigger value="group" className="data-[state=active]:bg-blue-500 data-[state=active]:text-white">Group Requests</TabsTrigger>
+            <TabsTrigger value="individual" className="data-[state=active]:bg-green-500 data-[state=active]:text-white">Individual Orders</TabsTrigger>
+            <TabsTrigger value="confirmed" className="data-[state=active]:bg-purple-500 data-[state=active]:text-white">Confirmed Orders</TabsTrigger>
           </TabsList>
 
           <TabsContent value="group" className="space-y-4">
-            <div className="flex justify-end mb-4">
-              <Button variant="vendor" onClick={() => setShowGroupModal(true)}>
-                <Plus className="w-4 h-4 mr-2" />
-                Create Product Group
-              </Button>
+            <div className="bg-blue-500 text-white rounded-lg p-6 mb-6">
+              <h2 className="text-2xl font-bold mb-2">Group Order Requests</h2>
+              <p className="text-blue-100 mb-4">Manage incoming group order requests from vendors</p>
+              <div className="flex justify-end">
+                <Button variant="outline" onClick={() => setShowGroupModal(true)} className="text-white border-white hover:bg-blue-400">
+                  <Plus className="w-4 h-4 mr-2" />
+                  Create Product Group
+                </Button>
+              </div>
             </div>
             {showGroupModal && (
               <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-40 z-50">
@@ -206,7 +167,7 @@ const SupplierDashboard = () => {
                   <div className="flex justify-end gap-2 mt-4">
                     <Button variant="outline" onClick={() => setShowGroupModal(false)}>Cancel</Button>
                     <Button
-                      variant="vendor"
+                      className="bg-blue-600 hover:bg-blue-700 text-white"
                       onClick={() => {
                         if (newGroup.product && newGroup.quantity && newGroup.location && newGroup.deadline && newGroup.deadlineTime) {
                           const deadlineDateTime = `${newGroup.deadline}T${newGroup.deadlineTime}`;
@@ -269,15 +230,15 @@ const SupplierDashboard = () => {
                     </div>
                     
                     <div className="flex items-center justify-between">
-                      <div className="text-lg font-semibold text-supplier">
+                      <div className="text-lg font-semibold text-blue-600">
                         Est. Value: {request.estimatedValue}
                       </div>
                       <div className="flex gap-2">
-                        <Button variant="outline" size="sm">
+                        <Button variant="outline" size="sm" className="border-red-300 text-red-600 hover:bg-red-50">
                           <XCircle className="w-4 h-4 mr-2" />
                           Decline
                         </Button>
-                        <Button variant="supplier" size="sm">
+                        <Button size="sm" className="bg-blue-600 hover:bg-blue-700 text-white">
                           <CheckCircle className="w-4 h-4 mr-2" />
                           Accept & Quote
                         </Button>
@@ -290,6 +251,10 @@ const SupplierDashboard = () => {
           </TabsContent>
 
           <TabsContent value="individual" className="space-y-4">
+            <div className="bg-green-500 text-white rounded-lg p-6 mb-6">
+              <h2 className="text-2xl font-bold mb-2">Individual Orders</h2>
+              <p className="text-green-100 mb-4">Process direct vendor orders and requests</p>
+            </div>
             <div className="grid gap-4">
               {individualOrders.map((order) => (
                 <Card key={order.id} className="hover:shadow-lg transition-all duration-300">
@@ -319,18 +284,18 @@ const SupplierDashboard = () => {
                           <MapPin className="w-4 h-4 mr-2 text-muted-foreground" />
                           {order.location}
                         </div>
-                        <div className="text-lg font-semibold text-supplier">
+                        <div className="text-lg font-semibold text-green-600">
                           {order.totalValue}
                         </div>
                       </div>
                     </div>
                     
                     <div className="flex justify-end gap-2">
-                      <Button variant="outline" size="sm">
+                      <Button variant="outline" size="sm" className="border-red-300 text-red-600 hover:bg-red-50">
                         <XCircle className="w-4 h-4 mr-2" />
                         Decline
                       </Button>
-                      <Button variant="supplier" size="sm">
+                      <Button size="sm" className="bg-green-600 hover:bg-green-700 text-white">
                         <CheckCircle className="w-4 h-4 mr-2" />
                         Accept Order
                       </Button>
@@ -342,6 +307,10 @@ const SupplierDashboard = () => {
           </TabsContent>
 
           <TabsContent value="confirmed" className="space-y-4">
+            <div className="bg-purple-500 text-white rounded-lg p-6 mb-6">
+              <h2 className="text-2xl font-bold mb-2">Confirmed Orders</h2>
+              <p className="text-purple-100 mb-4">Track and manage your confirmed deliveries</p>
+            </div>
             <div className="grid gap-4">
               {confirmedOrders.map((order) => (
                 <Card key={order.id} className="hover:shadow-lg transition-all duration-300">
@@ -374,14 +343,14 @@ const SupplierDashboard = () => {
                           <Clock className="w-4 h-4 mr-2 text-muted-foreground" />
                           Deliver {order.deliveryDate}
                         </div>
-                        <div className="text-lg font-semibold text-supplier">
+                        <div className="text-lg font-semibold text-purple-600">
                           {order.value}
                         </div>
                       </div>
                     </div>
                     
                     <div className="flex justify-end">
-                      <Button variant="supplier" size="sm">
+                      <Button size="sm" className="bg-purple-600 hover:bg-purple-700 text-white">
                         <Package className="w-4 h-4 mr-2" />
                         Mark as Delivered
                       </Button>
