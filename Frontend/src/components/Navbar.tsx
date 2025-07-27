@@ -157,6 +157,7 @@ const Navbar = () => {
               <Button 
                 variant="outline" 
                 className="bg-blue-600 text-white border-none hover:bg-blue-700 shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300 px-6 py-2 font-semibold"
+                onClick={() => navigate('/about')}
               >
                 About
               </Button>
@@ -312,7 +313,10 @@ const Navbar = () => {
                         Supplier Login
                       </button>
                       <hr className="my-2" />
-                      <button className="w-full px-4 py-2 text-left text-gray-700 hover:bg-gray-100 flex items-center">
+                      <button 
+                        className="w-full px-4 py-2 text-left text-gray-700 hover:bg-gray-100 flex items-center"
+                        onClick={() => navigate('/about')}
+                      >
                         <HelpCircle className="w-4 h-4 mr-3" />
                         About
                       </button>

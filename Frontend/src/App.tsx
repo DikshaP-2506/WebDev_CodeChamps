@@ -13,6 +13,7 @@ import SupplierDashboard from "./pages/supplier/SupplierDashboard";
 import SupplierDetails from "./pages/vendor/SupplierDetails";
 import OrderSummary from "./pages/vendor/OrderSummary";
 import CreateOrder from "./pages/vendor/CreateOrder";
+import About from "./pages/About";
 import NotFound from "./pages/NotFound";
 import { AuthProvider } from "./contexts/AuthContext";
 import ConvAIChatbot from "./components/ConvAIChatbot";
@@ -39,6 +40,7 @@ const App = () => (
             <Route path="/vendor/order-summary" element={<OrderSummary />} />
             <Route path="/vendor/create-order" element={<CreateOrder />} />
             <Route path="/supplier/dashboard" element={<SupplierDashboard />} />
+            <Route path="/about" element={<About />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
