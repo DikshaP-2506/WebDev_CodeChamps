@@ -144,10 +144,15 @@ const Navbar = () => {
       <div className="container mx-auto px-4 py-4">
         <div className="flex justify-between items-center">
           <div 
-            className="text-3xl font-bold text-black font-sans tracking-tight cursor-pointer hover:text-blue-600 transition-colors duration-300" 
+            className="flex items-center gap-3 text-3xl font-bold text-black font-sans tracking-tight cursor-pointer hover:text-blue-600 transition-colors duration-300" 
             style={{ fontFamily: 'Georgia, serif' }}
             onClick={() => navigate('/')}
           >
+            <img 
+              src="/logo.jpg" 
+              alt="MarketConnect Logo" 
+              className="w-12 h-12 object-contain rounded-lg"
+            />
             Market Connect
           </div>
           

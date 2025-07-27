@@ -562,11 +562,18 @@ const SupplierDashboard = () => {
           <div className="hidden">
             <div className="container mx-auto px-4 py-4">
               <div className="flex justify-between items-center">
-                <div>
-                  <h1 className="text-2xl font-bold text-white">Supplier Dashboard</h1>
-                  {supplierData && (
-                    <p className="text-green-100 text-sm">Welcome back, {supplierData.fullName}!</p>
-                  )}
+                <div className="flex items-center gap-3">
+                  <img 
+                    src="/logo.jpg" 
+                    alt="MarketConnect Logo" 
+                    className="w-12 h-12 object-contain rounded-lg"
+                  />
+                  <div>
+                    <h1 className="text-2xl font-bold text-white">Supplier Dashboard</h1>
+                    {supplierData && (
+                      <p className="text-green-100 text-sm">Welcome back, {supplierData.fullName}!</p>
+                    )}
+                  </div>
                 </div>
             <div className="flex items-center gap-4">
               <div className="relative">
