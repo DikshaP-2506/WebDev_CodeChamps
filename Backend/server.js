@@ -18,7 +18,9 @@ app.use(cors({
     'http://localhost:5173', // Alternative Vite port
     'http://127.0.0.1:8080',
     'http://127.0.0.1:3000',
-    'http://127.0.0.1:8081'
+    'http://127.0.0.1:8081',
+    'https://web-dev-code-champs-kappa.vercel.app', // Vercel deployment
+    'https://web-dev-code-champs-kappa.vercel.app/' // Vercel deployment with trailing slash
   ],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
