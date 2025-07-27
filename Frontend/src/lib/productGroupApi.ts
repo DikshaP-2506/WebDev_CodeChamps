@@ -1,4 +1,4 @@
-const API_BASE = 'http://localhost:5000/api/product-groups';
+const API_BASE = `${import.meta.env.VITE_API_BASE_URL}/product-groups`;
 
 export async function createProductGroup(data: any) {
   console.log('Creating product group with data:', data);
