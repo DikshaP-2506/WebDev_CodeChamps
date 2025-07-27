@@ -10,7 +10,11 @@ router.post('/', async (req, res) => {
     const {
       firebaseUserId, fullName, mobileNumber, languagePreference, businessName, businessAddress,
       city, pincode, state, businessType, supplyCapabilities,
-      preferredDeliveryTime, latitude, longitude
+      preferredDeliveryTime, latitude, longitude,
+      // Additional fields
+      gstNumber, licenseNumber, yearsInBusiness, employeeCount,
+      primaryEmail, whatsappBusiness,
+      foodSafetyLicense, organicCertification, isoCertification, exportLicense
     } = req.body;
 
     // Validation
@@ -23,19 +27,25 @@ router.post('/', async (req, res) => {
       });
     }
 
-    // Convert supplyCapabilities array to JSON string for storage
+    // Convert arrays to JSON strings for storage
     const supplyCapabilitiesJson = JSON.stringify(supplyCapabilities);
 
     const result = await query(
       `INSERT INTO suppliers (
         firebase_user_id, full_name, mobile_number, language_preference, business_name, business_address,
         city, pincode, state, business_type, supply_capabilities,
-        preferred_delivery_time, latitude, longitude
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        preferred_delivery_time, latitude, longitude,
+        gst_number, license_number, years_in_business, employee_count,
+        primary_email, whatsapp_business,
+        food_safety_license, organic_certification, iso_certification, export_license
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         firebaseUserId || null, fullName, mobileNumber, languagePreference, businessName || '', businessAddress,
         city, pincode, state, businessType, supplyCapabilitiesJson,
-        preferredDeliveryTime, latitude || '', longitude || ''
+        preferredDeliveryTime, latitude || '', longitude || '',
+        gstNumber || '', licenseNumber || '', yearsInBusiness || '', employeeCount || '',
+        primaryEmail || '', whatsappBusiness || '',
+        foodSafetyLicense || '', organicCertification || '', isoCertification || '', exportLicense || ''
       ]
     );
 
@@ -58,7 +68,17 @@ router.post('/', async (req, res) => {
         supplyCapabilities,
         preferredDeliveryTime,
         latitude,
-        longitude
+        longitude,
+        gstNumber,
+        licenseNumber,
+        yearsInBusiness,
+        employeeCount,
+        primaryEmail,
+        whatsappBusiness,
+        foodSafetyLicense,
+        organicCertification,
+        isoCertification,
+        exportLicense
       }
     });
   } catch (err) {
@@ -123,9 +143,35 @@ router.get('/by-user/:firebaseUserId', async (req, res) => {
       return res.status(404).json({ error: 'Supplier not found' });
     }
     
+    const rawSupplier = result.rows[0];
+    
+    // Convert snake_case database columns to camelCase for frontend
     const supplier = {
-      ...result.rows[0],
-      supply_capabilities: JSON.parse(result.rows[0].supply_capabilities || '[]')
+      id: rawSupplier.id,
+      fullName: rawSupplier.full_name,
+      mobileNumber: rawSupplier.mobile_number,
+      languagePreference: rawSupplier.language_preference,
+      businessName: rawSupplier.business_name || '',
+      businessAddress: rawSupplier.business_address,
+      city: rawSupplier.city,
+      pincode: rawSupplier.pincode,
+      state: rawSupplier.state,
+      businessType: rawSupplier.business_type,
+      supplyCapabilities: JSON.parse(rawSupplier.supply_capabilities || '[]'),
+      preferredDeliveryTime: rawSupplier.preferred_delivery_time,
+      latitude: rawSupplier.latitude || '',
+      longitude: rawSupplier.longitude || '',
+      // Additional fields (if they exist in database)
+      gstNumber: rawSupplier.gst_number || '',
+      licenseNumber: rawSupplier.license_number || '',
+      yearsInBusiness: rawSupplier.years_in_business || '',
+      employeeCount: rawSupplier.employee_count || '',
+      primaryEmail: rawSupplier.primary_email || '',
+      whatsappBusiness: rawSupplier.whatsapp_business || '',
+      foodSafetyLicense: rawSupplier.food_safety_license || '',
+      organicCertification: rawSupplier.organic_certification || '',
+      isoCertification: rawSupplier.iso_certification || '',
+      exportLicense: rawSupplier.export_license || ''
     };
     
     res.json({ supplier });
@@ -142,7 +188,11 @@ router.put('/:id', async (req, res) => {
     const {
       fullName, mobileNumber, languagePreference, businessName, businessAddress,
       city, pincode, state, businessType, supplyCapabilities,
-      preferredDeliveryTime, latitude, longitude
+      preferredDeliveryTime, latitude, longitude,
+      // Additional fields
+      gstNumber, licenseNumber, yearsInBusiness, employeeCount,
+      primaryEmail, whatsappBusiness,
+      foodSafetyLicense, organicCertification, isoCertification, exportLicense
     } = req.body;
 
     // Check if supplier exists
@@ -158,12 +208,19 @@ router.put('/:id', async (req, res) => {
       `UPDATE suppliers SET 
         full_name = ?, mobile_number = ?, language_preference = ?, business_name = ?, 
         business_address = ?, city = ?, pincode = ?, state = ?, business_type = ?, 
-        supply_capabilities = ?, preferred_delivery_time = ?, latitude = ?, longitude = ?
+        supply_capabilities = ?, preferred_delivery_time = ?, latitude = ?, longitude = ?,
+        gst_number = ?, license_number = ?, years_in_business = ?, employee_count = ?,
+        primary_email = ?, whatsapp_business = ?,
+        food_safety_license = ?, organic_certification = ?, iso_certification = ?, export_license = ?
       WHERE id = ?`,
       [
         fullName, mobileNumber, languagePreference, businessName || '', businessAddress,
         city, pincode, state, businessType, supplyCapabilitiesJson,
-        preferredDeliveryTime, latitude || '', longitude || '', id
+        preferredDeliveryTime, latitude || '', longitude || '',
+        gstNumber || '', licenseNumber || '', yearsInBusiness || '', employeeCount || '',
+        primaryEmail || '', whatsappBusiness || '',
+        foodSafetyLicense || '', organicCertification || '', isoCertification || '', exportLicense || '',
+        id
       ]
     );
 
