@@ -35,7 +35,9 @@ const VendorProfileSetup: React.FC = () => {
 
   // Get user's phone number from Firebase Auth if available
   useEffect(() => {
+    console.log("VendorProfileSetup component mounted");
     const user = auth.currentUser;
+    console.log("Current user:", user ? user.uid : "No user");
     if (user?.phoneNumber) {
       setFormData(prev => ({ ...prev, mobileNumber: user.phoneNumber }));
     }

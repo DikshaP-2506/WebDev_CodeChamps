@@ -25,7 +25,7 @@ const Landing = () => {
           {/* Role Selection Cards */}
           <div className="grid md:grid-cols-2 gap-8 mt-12 max-w-2xl mx-auto">
             <Card className="group hover:shadow-glow transition-all duration-300 cursor-pointer border-2 hover:border-vendor/50" 
-                  onClick={() => navigate('/vendor/login')}>
+                  onClick={() => navigate('/vendor/signup')}>
               <CardHeader className="text-center pb-4">
                 <div className="w-16 h-16 bg-gradient-vendor rounded-full flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform duration-300">
                   <ShoppingCart className="w-8 h-8 text-white" />

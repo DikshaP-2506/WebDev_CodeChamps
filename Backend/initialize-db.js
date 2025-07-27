@@ -124,83 +124,8 @@ const initializeDatabase = () => {
       }
     });
 
-    // Add sample vendor data (optional)
-    db.get("SELECT COUNT(*) as count FROM vendors", (err, row) => {
-      if (err) {
-        console.error('Error checking vendor count:', err);
-        return;
-      }
-      
-      if (row.count === 0) {
-        console.log('Adding sample vendor data...');
-        const sampleVendorData = [
-          'Sample Vendor',
-          '+91 9876543210',
-          'Hindi',
-          'Sample Stall',
-          'Sample Address, Near Landmark',
-          'Mumbai',
-          '400001',
-          'Maharashtra',
-          'Chaat',
-          JSON.stringify(['Spices', 'Oil', 'Vegetables']),
-          'Morning (6 AM - 12 PM)',
-          '19.0760',
-          '72.8777'
-        ];
-        
-        db.run(`INSERT INTO vendors (
-          full_name, mobile_number, language_preference, stall_name, stall_address,
-          city, pincode, state, stall_type, raw_material_needs,
-          preferred_delivery_time, latitude, longitude
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, sampleVendorData, function(err) {
-          if (err) {
-            console.error('Error inserting sample vendor data:', err);
-          } else {
-            console.log('Sample vendor added with ID:', this.lastID);
-          }
-        });
-      }
-    });
-
-    // Add sample supplier data (optional)
-    db.get("SELECT COUNT(*) as count FROM suppliers", (err, row) => {
-      if (err) {
-        console.error('Error checking supplier count:', err);
-        return;
-      }
-      
-      if (row.count === 0) {
-        console.log('Adding sample supplier data...');
-        const sampleSupplierData = [
-          'Sample Supplier',
-          '+91 9876543211',
-          'English',
-          'ABC Trading Company',
-          'Commercial Street, Business District',
-          'Mumbai',
-          '400002',
-          'Maharashtra',
-          'Wholesale',
-          JSON.stringify(['Spices', 'Grains', 'Oil', 'Vegetables']),
-          'Morning (6 AM - 12 PM)',
-          '19.0850',
-          '72.8850'
-        ];
-        
-        db.run(`INSERT INTO suppliers (
-          full_name, mobile_number, language_preference, business_name, business_address,
-          city, pincode, state, business_type, supply_capabilities,
-          preferred_delivery_time, latitude, longitude
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, sampleSupplierData, function(err) {
-          if (err) {
-            console.error('Error inserting sample supplier data:', err);
-          } else {
-            console.log('Sample supplier added with ID:', this.lastID);
-          }
-        });
-      }
-    });
+    // Database tables created successfully
+    console.log('Database initialization completed. All tables ready for real data.');
   });
 };
 

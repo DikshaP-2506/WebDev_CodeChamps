@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { auth } from "../../lib/firebase";
 import {
   signInWithEmailAndPassword,
@@ -6,7 +6,7 @@ import {
   signInWithPopup,
   GoogleAuthProvider
 } from "firebase/auth";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { Card, CardHeader, CardContent, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -14,12 +14,19 @@ import { ShoppingCart, ArrowLeft } from "lucide-react";
 import { useAuth } from "../../contexts/AuthContext";
 
 const VendorAuth: React.FC = () => {
-  const [isLogin, setIsLogin] = useState(true);
+  const location = useLocation();
+  // Initialize based on current path
+  const [isLogin, setIsLogin] = useState(location.pathname === '/vendor/login');
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const navigate = useNavigate();
   const { profileCompleted } = useAuth();
+
+  // Set mode based on URL path
+  useEffect(() => {
+    setIsLogin(location.pathname === '/vendor/login');
+  }, [location.pathname]);
 
   // Google Sign-In
   const handleGoogle = async () => {
@@ -28,18 +35,30 @@ const VendorAuth: React.FC = () => {
       const provider = new GoogleAuthProvider();
       const result = await signInWithPopup(auth, provider);
       
-      // Check if this is a first-time user by checking creation time
+      console.log("Google sign-in successful");
       const user = result.user;
+      console.log("User details:", user.uid, user.email);
+      
+      // Check if this is a first-time user by checking creation time
       const creationTime = user.metadata.creationTime;
       const lastSignInTime = user.metadata.lastSignInTime;
       
-      // If creation time equals last sign in time, it's a new user
-      if (creationTime === lastSignInTime) {
+      console.log("Creation time:", creationTime);
+      console.log("Last sign-in time:", lastSignInTime);
+      
+      // For signup page, always go to profile setup for Google users
+      if (!isLogin) {
+        console.log("Signup mode - redirecting to profile setup");
         navigate("/vendor/profile-setup");
       } else {
-        // Check if user has completed profile setup (you would check your database here)
-        // For now, we'll redirect to profile setup for all users
-        navigate("/vendor/dashboard");
+        // For login page, check if user is new or returning
+        if (creationTime === lastSignInTime) {
+          console.log("New user detected - redirecting to profile setup");
+          navigate("/vendor/profile-setup");
+        } else {
+          console.log("Existing user detected - redirecting to dashboard");
+          navigate("/vendor/dashboard");
+        }
       }
     } catch (err: any) {
       setError(err.message);
@@ -56,8 +75,15 @@ const VendorAuth: React.FC = () => {
         navigate("/vendor/dashboard");
       } else {
         // This is a new user signup
-        await createUserWithEmailAndPassword(auth, email, password);
-        navigate("/vendor/profile-setup");
+        console.log("Starting vendor signup process...");
+        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+        console.log("User created successfully:", userCredential.user.uid);
+        
+        // Wait a bit for Firebase auth state to update
+        setTimeout(() => {
+          console.log("Redirecting to vendor profile setup...");
+          navigate("/vendor/profile-setup");
+        }, 500);
       }
     } catch (err: any) {
       setError(err.message);
@@ -100,6 +126,7 @@ const VendorAuth: React.FC = () => {
               onChange={e => setPassword(e.target.value)}
               required
             />
+            
             {error && <div className="text-red-500 text-sm text-center">{error}</div>}
             <Button type="submit" variant="vendor" className="w-full">
               {isLogin ? "Login" : "Sign Up"}
@@ -118,7 +145,7 @@ const VendorAuth: React.FC = () => {
             <button
               type="button"
               className="text-vendor underline text-sm hover:text-vendor/80"
-              onClick={() => setIsLogin(!isLogin)}
+              onClick={() => navigate(isLogin ? '/vendor/signup' : '/vendor/login')}
             >
               {isLogin ? "Don't have an account? Sign Up" : "Already have an account? Login"}
             </button>
