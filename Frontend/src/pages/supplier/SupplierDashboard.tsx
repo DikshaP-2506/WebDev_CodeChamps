@@ -46,6 +46,10 @@ const SupplierDashboard = () => {
   
   const { toast } = useToast();
   const [groupRequests, setGroupRequests] = useState<any[]>([]);
+  
+  // Orders state
+  const [individualOrders, setIndividualOrders] = useState([]);
+  const [confirmedOrders, setConfirmedOrders] = useState([]);
 
   // Calculate discount percentage
   const calculateDiscountPercentage = (actualRate: string, finalRate: string) => {
@@ -438,10 +442,6 @@ const SupplierDashboard = () => {
     );
   };
 
-  // Individual orders will be fetched from backend when implemented
-  const [individualOrders, setIndividualOrders] = useState([]);
-  const [confirmedOrders, setConfirmedOrders] = useState([]);
-
   // Fetch individual and confirmed orders
   useEffect(() => {
     const fetchSupplierOrders = async () => {
@@ -451,37 +451,83 @@ const SupplierDashboard = () => {
         }
 
         console.log('Fetching orders for supplier:', supplierData.id);
-        const response = await orderApi.getBySupplierId(supplierData.id);
-        console.log('Supplier orders response:', response);
         
-        // Parse JSON fields and categorize orders
-        const ordersWithParsedData = response.orders.map(order => ({
-          ...order,
-          items: typeof order.items === 'string' ? JSON.parse(order.items) : order.items,
-          customer_details: order.customer_details ? 
+        // Fetch orders assigned to this specific supplier only
+        const supplierOrdersResponse = await orderApi.getBySupplierId(supplierData.id);
+        console.log('Supplier orders response:', supplierOrdersResponse);
+        console.log('Total orders found:', supplierOrdersResponse.orders?.length || 0);
+        
+        // DEBUG: Log all orders with their status
+        if (supplierOrdersResponse.orders) {
+          supplierOrdersResponse.orders.forEach((order, index) => {
+            console.log(`Order ${index + 1}:`, {
+              id: order.id,
+              payment_status: order.payment_status,
+              status: order.status,
+              supplier_id: order.supplier_id,
+              vendor_id: order.vendor_id
+            });
+          });
+        }
+        
+        // TEMPORARY: Show ALL orders assigned to this supplier for debugging
+        const relevantOrders = supplierOrdersResponse.orders || [];
+        
+        // Use the same data for both tabs since both show orders assigned to this supplier
+        const allSupplierOrders = supplierOrdersResponse.orders;
+        
+        // Transform relevant orders for Individual Orders tab
+        const transformedIndividualOrders = relevantOrders.map(order => {
+          const items = typeof order.items === 'string' ? JSON.parse(order.items) : order.items;
+          const customerDetails = order.customer_details ? 
             (typeof order.customer_details === 'string' ? JSON.parse(order.customer_details) : order.customer_details) 
-            : null
-        }));
+            : null;
+            
+          return {
+            id: order.id,
+            product: items && items.length > 0 ? items[0].name : 'Unknown Product',
+            vendor: order.vendor_name || 'Unknown Vendor',
+            vendorPhone: order.vendor_phone || '',
+            stallName: order.stall_name || '',
+            location: order.vendor_city || 'Unknown Location',
+            quantity: items && items.length > 0 ? `${items[0].quantity}kg` : '0kg',
+            requestedPrice: items && items.length > 0 ? `₹${items[0].pricePerKg}/kg` : '₹0/kg',
+            totalValue: `₹${order.total_amount.toFixed(2)}`,
+            status: order.status || 'pending',
+            createdAt: order.created_at,
+            customerDetails: customerDetails,
+            deliveryAddress: order.delivery_address,
+            notes: order.notes,
+            paymentMethod: order.payment_method,
+            vendorId: order.vendor_id
+          };
+        });
 
-        // For now, we'll treat all orders as confirmed since payment has been processed
-        // In future, you might want to filter based on status
-        const transformedOrders = ordersWithParsedData.map(order => ({
-          id: order.id,
-          product: order.items && order.items.length > 0 ? order.items[0].name : 'Unknown Product',
-          type: order.order_type,
-          vendors: 1, // Single vendor per order
-          status: order.status === 'confirmed' ? 'Ready to Ship' : 'Processing',
-          value: `₹${order.total_amount.toFixed(2)}`,
-          quantity: order.items && order.items.length > 0 ? `${order.items[0].quantity}kg` : '0kg',
-          deliveryDate: order.delivery_date || 'TBD',
-          customerName: order.customer_details?.name || 'Unknown Customer',
-          customerPhone: order.customer_details?.phone || '',
-          paymentMethod: order.payment_method,
-          createdAt: order.created_at
-        }));
+        // Transform confirmed orders for Order History tab
+        const transformedConfirmedOrders = allSupplierOrders.map(order => {
+          const items = typeof order.items === 'string' ? JSON.parse(order.items) : order.items;
+          const customerDetails = order.customer_details ? 
+            (typeof order.customer_details === 'string' ? JSON.parse(order.customer_details) : order.customer_details) 
+            : null;
+            
+          return {
+            id: order.id,
+            product: items && items.length > 0 ? items[0].name : 'Unknown Product',
+            type: order.order_type,
+            vendors: 1,
+            status: order.status === 'accepted' ? 'Processing' : order.status === 'completed' ? 'Completed' : 'Ready to Ship',
+            value: `₹${order.total_amount.toFixed(2)}`,
+            quantity: items && items.length > 0 ? `${items[0].quantity}kg` : '0kg',
+            deliveryDate: order.delivery_date || 'TBD',
+            customerName: customerDetails?.name || 'Unknown Customer',
+            customerPhone: customerDetails?.phone || '',
+            paymentMethod: order.payment_method,
+            createdAt: order.created_at
+          };
+        });
 
-        setConfirmedOrders(transformedOrders);
-        setIndividualOrders(transformedOrders); // For now, all orders appear in both tabs
+        setIndividualOrders(transformedIndividualOrders);
+        setConfirmedOrders(transformedConfirmedOrders);
 
       } catch (error) {
         console.error('Error fetching supplier orders:', error);
@@ -494,7 +540,7 @@ const SupplierDashboard = () => {
     };
 
     fetchSupplierOrders();
-  }, [supplierData]);
+  }, [supplierData, toast]);
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -572,13 +618,11 @@ const SupplierDashboard = () => {
       <div className="container mx-auto px-4 py-6">
         {/* Orders Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-3 bg-white p-1 rounded-lg border shadow-sm">
-            <TabsTrigger value="group" className="data-[state=active]:bg-blue-500 data-[state=active]:text-white">Group Requests</TabsTrigger>
-            <TabsTrigger value="individual" className="data-[state=active]:bg-green-500 data-[state=active]:text-white">Individual Orders</TabsTrigger>
-            <TabsTrigger value="confirmed" className="data-[state=active]:bg-purple-500 data-[state=active]:text-white">Confirmed Orders</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="group" className="space-y-4">
+            <TabsList className="grid w-full grid-cols-3 bg-white p-1 rounded-lg border shadow-sm">
+              <TabsTrigger value="group" className="data-[state=active]:bg-blue-500 data-[state=active]:text-white">Group Requests</TabsTrigger>
+              <TabsTrigger value="individual" className="data-[state=active]:bg-green-500 data-[state=active]:text-white">My Orders</TabsTrigger>
+              <TabsTrigger value="confirmed" className="data-[state=active]:bg-purple-500 data-[state=active]:text-white">Order History</TabsTrigger>
+            </TabsList>          <TabsContent value="group" className="space-y-4">
             <div className="bg-blue-500 text-white rounded-lg p-6 mb-6">
               <h2 className="text-2xl font-bold mb-2">Group Order Requests</h2>
               <p className="text-blue-100 mb-4">Manage incoming group order requests from vendors</p>
@@ -699,16 +743,16 @@ const SupplierDashboard = () => {
 
           <TabsContent value="individual" className="space-y-4">
             <div className="bg-green-500 text-white rounded-lg p-6 mb-6">
-              <h2 className="text-2xl font-bold mb-2">Individual Orders</h2>
-              <p className="text-green-100 mb-4">Process direct vendor orders and requests</p>
+              <h2 className="text-2xl font-bold mb-2">My Orders</h2>
+              <p className="text-green-100 mb-4">Orders assigned to your business (payment completed)</p>
             </div>
             
             {individualOrders.length === 0 ? (
               <div className="text-center py-12">
                 <Package className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                <h3 className="text-lg font-semibold text-gray-600 mb-2">No Individual Orders</h3>
+                <h3 className="text-lg font-semibold text-gray-600 mb-2">No Orders Assigned</h3>
                 <p className="text-gray-500 mb-4">
-                  Individual orders from vendors will appear here when they place direct orders.
+                  Orders assigned to your business will appear here after vendors select you and complete payment.
                 </p>
               </div>
             ) : (
@@ -722,45 +766,39 @@ const SupplierDashboard = () => {
                     </div>
                     <div className="font-semibold text-lg text-gray-900">{order.product}</div>
                     <div className="text-gray-600 text-sm">by {order.vendor}</div>
+                    {order.stallName && (
+                      <div className="text-gray-500 text-xs">Stall: {order.stallName}</div>
+                    )}
                     <div className="flex items-center text-xs text-gray-500 mt-1 mb-2">
                       <MapPin className="w-3 h-3 mr-1" />
                       <span>{order.location}</span>
-                      <span className="ml-2 bg-green-100 text-green-700 px-2 py-0.5 rounded text-xs">{order.status}</span>
                     </div>
                     <div className="text-green-600 font-bold text-lg mb-1">{order.totalValue}</div>
                     <div className="flex items-center text-xs text-gray-500 mb-2">
                       <span>Qty: {order.quantity}</span>
                     </div>
-                    <div className="flex items-center text-xs text-gray-500 mb-3">
-                      <span>Price: {order.requestedPrice}</span>
+                    <div className="flex items-center text-xs text-gray-500 mb-2">
+                      <span>Rate: {order.requestedPrice}</span>
                     </div>
-                    <div className="flex gap-1 mb-2">
-                      <button 
-                        className="flex-1 bg-red-50 hover:bg-red-100 text-red-600 py-1.5 rounded text-xs font-medium transition-colors"
-                        onClick={async () => {
-                          try {
-                            // TODO: Implement individual order decline API
-                            toast({ title: 'Declined', description: 'Individual order declined.' });
-                          } catch (err) {
-                            toast({ title: 'Error', description: 'Failed to decline order.', variant: 'destructive' });
-                          }
-                        }}
-                      >
-                        Decline
-                      </button>
-                      <button 
-                        className="flex-1 bg-green-600 hover:bg-green-700 text-white py-1.5 rounded text-xs font-medium transition-colors"
-                        onClick={async () => {
-                          try {
-                            // TODO: Implement individual order accept API
-                            toast({ title: 'Accepted', description: 'Individual order accepted.' });
-                          } catch (err) {
-                            toast({ title: 'Error', description: 'Failed to accept order.', variant: 'destructive' });
-                          }
-                        }}
-                      >
-                        Accept
-                      </button>
+                    {order.vendorPhone && (
+                      <div className="flex items-center text-xs text-gray-500 mb-2">
+                        <Phone className="w-3 h-3 mr-1" />
+                        <span>{order.vendorPhone}</span>
+                      </div>
+                    )}
+                    <div className="flex items-center text-xs text-gray-500 mb-3">
+                      <Clock className="w-3 h-3 mr-1" />
+                      <span>{new Date(order.createdAt).toLocaleDateString()}</span>
+                    </div>
+                    
+                    {/* Order Status Display */}
+                    <div className="mt-3 p-2 bg-green-50 border border-green-200 rounded-lg">
+                      <div className="flex items-center justify-center">
+                        <span className="text-green-700 font-medium text-sm">Payment Completed</span>
+                      </div>
+                      <p className="text-green-600 text-xs text-center mt-1">
+                        Order confirmed and ready for processing
+                      </p>
                     </div>
                   </div>
                 ))}
@@ -770,16 +808,16 @@ const SupplierDashboard = () => {
 
           <TabsContent value="confirmed" className="space-y-4">
             <div className="bg-purple-500 text-white rounded-lg p-6 mb-6">
-              <h2 className="text-2xl font-bold mb-2">Confirmed Orders</h2>
-              <p className="text-purple-100 mb-4">Track and manage your confirmed deliveries</p>
+              <h2 className="text-2xl font-bold mb-2">Order History</h2>
+              <p className="text-purple-100 mb-4">Complete history of all your orders</p>
             </div>
             
             {confirmedOrders.length === 0 ? (
               <div className="text-center py-12">
                 <Package className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                <h3 className="text-lg font-semibold text-gray-600 mb-2">No Confirmed Orders</h3>
+                <h3 className="text-lg font-semibold text-gray-600 mb-2">No Order History</h3>
                 <p className="text-gray-500 mb-4">
-                  Confirmed orders will appear here once you accept group requests or individual orders.
+                  Your complete order history will appear here.
                 </p>
               </div>
             ) : (
@@ -1545,7 +1583,7 @@ const SupplierDashboard = () => {
           </div>
         </div>
       )}
-        </>
+      </>
       )}
     </div>
   );

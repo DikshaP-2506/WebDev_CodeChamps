@@ -57,6 +57,11 @@ export interface Order {
   customer_details?: string; // JSON string
   created_at: string;
   updated_at: string;
+  // Vendor information (from JOIN with vendors table)
+  vendor_name?: string;
+  vendor_phone?: string;
+  stall_name?: string;
+  vendor_city?: string;
 }
 
 export interface OrderResponse {
@@ -89,6 +94,16 @@ export const orderApi = {
   // Get orders by supplier ID
   getBySupplierId: async (supplierId: number): Promise<OrderListResponse> => {
     return api.get(`/orders/supplier/${supplierId}`);
+  },
+
+  // Get pending orders (orders without supplier assigned)
+  getPendingOrders: async (): Promise<OrderListResponse> => {
+    return api.get('/orders/pending');
+  },
+
+  // Accept an order by supplier
+  acceptOrder: async (orderId: string, supplierId: number): Promise<{ message: string }> => {
+    return api.put(`/orders/${orderId}/accept`, { supplier_id: supplierId });
   },
 
   // Get order by ID

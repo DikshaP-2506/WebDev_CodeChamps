@@ -83,17 +83,14 @@ const CreateOrder = () => {
       return;
     }
 
-    setLoading(true);
-
-    // Simulate order creation
-    setTimeout(() => {
-      setLoading(false);
-      toast({
-        title: "Order Created Successfully!",
-        description: "Your individual order has been sent to suppliers in your area.",
-      });
-      navigate('/vendor/dashboard');
-    }, 2000);
+    // Redirect to payment flow instead of creating order directly
+    toast({
+      title: "Redirecting to Payment",
+      description: "Please complete payment to confirm your order.",
+    });
+    
+    // Navigate to dashboard where payment flow will handle order creation
+    navigate('/vendor/dashboard');
   };
 
   const areas = ["Sector 15", "Sector 16", "Sector 17", "Sector 18", "Sector 22", "Sector 25"];

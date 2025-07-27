@@ -969,7 +969,8 @@ const VendorDashboard = () => {
   // Transform product groups into individual suppliers for individual purchases
   const transformGroupsToSuppliers = (groups) => {
     return groups.map(group => ({
-      id: group.id,
+      id: group.created_by, // Use the actual supplier ID, not the group ID
+      groupId: group.id, // Keep group ID for reference
       image: "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=400&q=80", // Default image
       name: group.supplier || "Supplier",
       product: group.product,
@@ -1819,7 +1820,7 @@ const VendorDashboard = () => {
                     const productPrice = parseFloat(selectedSupplier.originalPrice || selectedSupplier.price.replace('₹', '').replace('/kg', ''));
                     const deliveryCharge = currentLocation && isSupplierInDeliveryRange(selectedSupplier) ? selectedSupplier.deliveryCharge : 0;
                     const subtotal = productPrice * orderQuantity;
-                    const tax = Math.round(subtotal * 0.18);
+                    const tax = Math.round(subtotal * 0.05);
                     return (subtotal + deliveryCharge + tax).toFixed(0);
                   })()}
                 </button>

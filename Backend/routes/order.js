@@ -1,5 +1,5 @@
 const express = require('express');
-const { query } = require('../db');
+const { query } = require('../initialize-db');
 const router = express.Router();
 
 // Create a new order
@@ -57,7 +57,13 @@ router.post('/', async (req, res) => {
 
     const result = await query(sql, params);
     
-    console.log('Order created successfully:', result);
+    console.log('✅ Order created successfully:');
+    console.log('📝 Order ID:', id);
+    console.log('🏪 Vendor ID:', vendor_id);
+    console.log('🏭 Supplier ID:', supplier_id);
+    console.log('📊 Status:', status);
+    console.log('💳 Payment Status:', payment_status);
+    console.log('💰 Total Amount:', total_amount);
     
     res.status(201).json({
       message: 'Order created successfully',
@@ -86,7 +92,12 @@ router.post('/', async (req, res) => {
 // Get all orders
 router.get('/', async (req, res) => {
   try {
-    const result = await query('SELECT * FROM orders ORDER BY created_at DESC');
+    const result = await query(
+      `SELECT o.*, v.full_name as vendor_name, v.mobile_number as vendor_phone, v.stall_name, v.city as vendor_city
+       FROM orders o 
+       LEFT JOIN vendors v ON o.vendor_id = v.id 
+       ORDER BY o.created_at DESC`
+    );
     res.json({ orders: result.rows });
   } catch (error) {
     console.error('Error fetching orders:', error);
@@ -119,15 +130,93 @@ router.get('/vendor/:vendorId', async (req, res) => {
 router.get('/supplier/:supplierId', async (req, res) => {
   try {
     const { supplierId } = req.params;
+    console.log('🔍 Fetching orders for supplier ID:', supplierId);
+    
     const result = await query(
-      'SELECT * FROM orders WHERE supplier_id = ? ORDER BY created_at DESC',
+      `SELECT o.*, v.full_name as vendor_name, v.mobile_number as vendor_phone, v.stall_name, v.city as vendor_city
+       FROM orders o 
+       LEFT JOIN vendors v ON o.vendor_id = v.id 
+       WHERE o.supplier_id = ? 
+       ORDER BY o.created_at DESC`,
       [supplierId]
     );
+    
+    console.log('📊 Orders found for supplier', supplierId, ':', result.rows.length);
+    console.log('📋 Order details:', result.rows.map(order => ({
+      id: order.id,
+      vendor_id: order.vendor_id,
+      supplier_id: order.supplier_id,
+      status: order.status,
+      payment_status: order.payment_status,
+      total_amount: order.total_amount
+    })));
+    
     res.json({ orders: result.rows });
   } catch (error) {
     console.error('Error fetching supplier orders:', error);
     res.status(500).json({ 
       error: 'Failed to fetch supplier orders',
+      message: error.message 
+    });
+  }
+});
+
+// Get pending orders (orders without supplier assigned) - for suppliers to view and accept
+router.get('/pending', async (req, res) => {
+  try {
+    const result = await query(
+      `SELECT o.*, v.full_name as vendor_name, v.mobile_number as vendor_phone, v.stall_name, v.city as vendor_city
+       FROM orders o 
+       LEFT JOIN vendors v ON o.vendor_id = v.id 
+       WHERE o.supplier_id IS NULL AND o.status = 'pending' 
+       ORDER BY o.created_at DESC`
+    );
+    res.json({ orders: result.rows });
+  } catch (error) {
+    console.error('Error fetching pending orders:', error);
+    res.status(500).json({ 
+      error: 'Failed to fetch pending orders',
+      message: error.message 
+    });
+  }
+});
+
+// Accept an order by supplier (assign supplier_id to the order)
+router.put('/:orderId/accept', async (req, res) => {
+  try {
+    const { orderId } = req.params;
+    const { supplier_id } = req.body;
+
+    if (!supplier_id) {
+      return res.status(400).json({ error: 'supplier_id is required' });
+    }
+
+    // Check if order exists and is still pending
+    const checkResult = await query(
+      'SELECT * FROM orders WHERE id = ? AND supplier_id IS NULL AND status = ?',
+      [orderId, 'pending']
+    );
+
+    if (checkResult.rows.length === 0) {
+      return res.status(404).json({ error: 'Order not found or already assigned' });
+    }
+
+    // Update order with supplier_id and change status to 'accepted'
+    const result = await query(
+      'UPDATE orders SET supplier_id = ?, status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
+      [supplier_id, 'accepted', orderId]
+    );
+
+    res.json({ 
+      message: 'Order accepted successfully',
+      orderId,
+      supplier_id
+    });
+
+  } catch (error) {
+    console.error('Error accepting order:', error);
+    res.status(500).json({ 
+      error: 'Failed to accept order',
       message: error.message 
     });
   }

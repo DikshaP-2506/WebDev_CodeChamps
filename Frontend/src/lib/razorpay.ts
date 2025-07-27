@@ -208,7 +208,7 @@ export const calculateDeliveryCharge = (
 };
 
 // Calculate tax (GST)
-export const calculateTax = (amount: number, taxRate: number = 0.18): number => {
+export const calculateTax = (amount: number, taxRate: number = 0.05): number => {
   return Math.round(amount * taxRate);
 };
 

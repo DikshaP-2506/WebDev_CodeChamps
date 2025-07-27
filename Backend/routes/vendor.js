@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { query } = require('../db');
+const { query } = require('../initialize-db');
 
 // Create vendor profile
 router.post('/', async (req, res) => {
