@@ -23,6 +23,23 @@ router.post('/', async (req, res) => {
       });
     }
 
+    // Check if vendor already exists with this Firebase user ID
+    if (firebaseUserId) {
+      const existingVendor = await query(
+        'SELECT * FROM vendors WHERE firebase_user_id = ?',
+        [firebaseUserId]
+      );
+      
+      if (existingVendor.rows.length > 0) {
+        console.log('Vendor already exists with Firebase user ID:', firebaseUserId);
+        return res.status(409).json({ 
+          error: 'Vendor profile already exists for this account',
+          message: 'A vendor profile already exists with this Firebase account. Please login instead.',
+          vendorId: existingVendor.rows[0].id
+        });
+      }
+    }
+
     // Convert rawMaterialNeeds array to JSON string for storage
     const rawMaterialsJson = JSON.stringify(rawMaterialNeeds);
 

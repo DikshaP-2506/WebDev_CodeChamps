@@ -365,7 +365,7 @@ const VendorDashboard = () => {
 
   const handlePlaceOrder = (supplier, product) => {
     // Calculate total cost including delivery
-    const productPrice = parseFloat(supplier.price.replace('₹', '').replace('/kg', ''));
+    const productPrice = parseFloat(supplier.originalPrice || supplier.price.replace('₹', '').replace('/kg', ''));
     const distance = currentLocation ? calculateDistance(
       currentLocation.latitude, 
       currentLocation.longitude,
@@ -680,7 +680,7 @@ const VendorDashboard = () => {
 
   // Filter suppliers based on location and search
   const getFilteredSuppliers = () => {
-    let filtered = suppliers.filter(supplier => {
+    let filtered = individualSuppliers.filter(supplier => {
       const matchesSearch = supplier.product.toLowerCase().includes(supplierSearch.toLowerCase()) ||
                            supplier.name.toLowerCase().includes(supplierSearch.toLowerCase());
       
@@ -808,89 +808,8 @@ const VendorDashboard = () => {
     }
   ];
 
-  // Example supplier data for grid layout with coordinates
-  const suppliers = [
-    {
-      id: 1,
-      image: "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=400&q=80",
-      name: "Quality Foods",
-      product: "Rice - Grains",
-      price: "₹52/kg",
-      location: "Thane",
-      latitude: 19.2183,
-      longitude: 72.9781,
-      verified: true,
-      memberYears: 3,
-      rating: 4.8,
-      deliveryRadius: 25, // km
-      deliveryCharge: 50, // ₹
-      otherProducts: [
-        { name: "Wheat - Grains", price: "₹45/kg", image: "https://images.unsplash.com/photo-1465101046530-73398c7f28ca?auto=format&fit=crop&w=400&q=80" },
-        { name: "Barley - Grains", price: "₹38/kg", image: "https://images.unsplash.com/photo-1502741338009-cac2772e18bc?auto=format&fit=crop&w=400&q=80" },
-        { name: "Oats - Grains", price: "₹65/kg", image: "https://images.unsplash.com/photo-1519864600265-abb23847ef2c?auto=format&fit=crop&w=400&q=80" }
-      ]
-    },
-    {
-      id: 2,
-      image: "https://images.unsplash.com/photo-1465101046530-73398c7f28ca?auto=format&fit=crop&w=400&q=80",
-      name: "ABC Suppliers",
-      product: "Rice - Grains",
-      price: "₹50/kg",
-      location: "Mumbai",
-      latitude: 19.0760,
-      longitude: 72.8777,
-      verified: true,
-      memberYears: 5,
-      rating: 4.5,
-      deliveryRadius: 30,
-      deliveryCharge: 75,
-      otherProducts: [
-        { name: "Brown Rice", price: "₹68/kg", image: "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=400&q=80" },
-        { name: "Quinoa - Grains", price: "₹180/kg", image: "https://images.unsplash.com/photo-1465101046530-73398c7f28ca?auto=format&fit=crop&w=400&q=80" },
-        { name: "Millet - Grains", price: "₹75/kg", image: "https://images.unsplash.com/photo-1502741338009-cac2772e18bc?auto=format&fit=crop&w=400&q=80" }
-      ]
-    },
-    {
-      id: 3,
-      image: "https://images.unsplash.com/photo-1502741338009-cac2772e18bc?auto=format&fit=crop&w=400&q=80",
-      name: "Spice Masters",
-      product: "Turmeric - Spices",
-      price: "₹200/kg",
-      location: "Nashik",
-      latitude: 19.9975,
-      longitude: 73.7898,
-      verified: false,
-      memberYears: 2,
-      rating: 4.6,
-      deliveryRadius: 40,
-      deliveryCharge: 100,
-      otherProducts: [
-        { name: "Cumin - Spices", price: "₹450/kg", image: "https://images.unsplash.com/photo-1502741338009-cac2772e18bc?auto=format&fit=crop&w=400&q=80" },
-        { name: "Coriander - Spices", price: "₹180/kg", image: "https://images.unsplash.com/photo-1519864600265-abb23847ef2c?auto=format&fit=crop&w=400&q=80" },
-        { name: "Red Chili - Spices", price: "₹320/kg", image: "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=400&q=80" }
-      ]
-    },
-    {
-      id: 4,
-      image: "https://images.unsplash.com/photo-1519864600265-abb23847ef2c?auto=format&fit=crop&w=400&q=80",
-      name: "XYZ Traders",
-      product: "Rice - Grains",
-      price: "₹48/kg",
-      location: "Pune",
-      latitude: 18.5204,
-      longitude: 73.8567,
-      verified: true,
-      memberYears: 4,
-      rating: 4.2,
-      deliveryRadius: 35,
-      deliveryCharge: 80,
-      otherProducts: [
-        { name: "Basmati Rice", price: "₹95/kg", image: "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=400&q=80" },
-        { name: "Black Rice", price: "₹125/kg", image: "https://images.unsplash.com/photo-1465101046530-73398c7f28ca?auto=format&fit=crop&w=400&q=80" },
-        { name: "Broken Rice", price: "₹35/kg", image: "https://images.unsplash.com/photo-1502741338009-cac2772e18bc?auto=format&fit=crop&w=400&q=80" }
-      ]
-    },
-  ];
+  // Individual suppliers data derived from product groups (for individual purchases)
+  const [individualSuppliers, setIndividualSuppliers] = useState([]);
 
   const mapGroupData = (group) => ({
     id: group.id,
@@ -914,6 +833,28 @@ const VendorDashboard = () => {
     otherGroupProducts: [],
   });
 
+  // Transform product groups into individual suppliers for individual purchases
+  const transformGroupsToSuppliers = (groups) => {
+    return groups.map(group => ({
+      id: group.id,
+      image: "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=400&q=80", // Default image
+      name: group.supplier || "Supplier",
+      product: group.product,
+      price: `₹${group.actual_rate || group.final_rate}/kg`, // Use original price for individual purchases
+      originalPrice: group.actual_rate || group.final_rate, // Store original price for calculations
+      location: group.location,
+      latitude: parseFloat(group.latitude) || 19.0760,
+      longitude: parseFloat(group.longitude) || 72.8777,
+      verified: true,
+      memberYears: 3,
+      rating: 4.5,
+      deliveryRadius: 25, // Default delivery radius
+      deliveryCharge: 50, // Default delivery charge
+      otherProducts: [], // Will be populated if needed
+      groupData: group // Store original group data for reference
+    }));
+  };
+
   // Fetch product groups from backend
   useEffect(() => {
     const loadGroups = async () => {
@@ -922,6 +863,10 @@ const VendorDashboard = () => {
         const mappedGroups = groups.map(mapGroupData);
         setGroupOrders(mappedGroups);
         console.log('Fetched product groups:', mappedGroups);
+        
+        // Transform groups into individual suppliers
+        const suppliers = transformGroupsToSuppliers(groups);
+        setIndividualSuppliers(suppliers);
       } catch (err) {
         toast({
           title: "Error",
@@ -1052,6 +997,11 @@ const VendorDashboard = () => {
             <div className="bg-blue-500 text-white rounded-lg p-6 mb-6">
               <h2 className="text-2xl font-bold mb-2">Find Suppliers</h2>
               <p className="text-blue-100 mb-4">Search and filter suppliers based on your needs</p>
+              <div className="bg-blue-400 rounded-lg p-3 mt-4">
+                <p className="text-sm">
+                  <strong>Note:</strong> Individual purchases show original prices (no group discounts applied)
+                </p>
+              </div>
             </div>
             
             {/* Location Status Bar for Suppliers */}
@@ -1247,6 +1197,11 @@ const VendorDashboard = () => {
             <div className="bg-green-500 text-white rounded-lg p-6 mb-6">
               <h2 className="text-2xl font-bold mb-2">Group Orders</h2>
               <p className="text-green-100 mb-4">Join group orders for bulk discounts</p>
+              <div className="bg-green-400 rounded-lg p-3 mt-4">
+                <p className="text-sm">
+                  <strong>Note:</strong> Group orders show discounted prices (final rates with bulk discounts)
+                </p>
+              </div>
             </div>
             
             {/* Location and Search Controls */}
@@ -1661,7 +1616,7 @@ const VendorDashboard = () => {
                     <div>
                       <label className="block text-sm font-medium mb-2">Subtotal</label>
                       <div className="text-lg font-bold text-blue-600">
-                        ₹{(parseFloat(selectedSupplier.price.replace('₹', '').replace('/kg', '')) * orderQuantity).toFixed(2)}
+                        ₹{(parseFloat(selectedSupplier.originalPrice || selectedSupplier.price.replace('₹', '').replace('/kg', '')) * orderQuantity).toFixed(2)}
                       </div>
                     </div>
                   </div>
@@ -1681,7 +1636,7 @@ const VendorDashboard = () => {
                   onClick={() => handlePlaceOrder(selectedSupplier, selectedSupplier.product)}
                 >
                   Proceed to Payment - ₹{(() => {
-                    const productPrice = parseFloat(selectedSupplier.price.replace('₹', '').replace('/kg', ''));
+                    const productPrice = parseFloat(selectedSupplier.originalPrice || selectedSupplier.price.replace('₹', '').replace('/kg', ''));
                     const deliveryCharge = currentLocation && isSupplierInDeliveryRange(selectedSupplier) ? selectedSupplier.deliveryCharge : 0;
                     const subtotal = productPrice * orderQuantity;
                     const tax = Math.round(subtotal * 0.18);
@@ -1715,7 +1670,7 @@ const VendorDashboard = () => {
             <div>
               <h3 className="text-lg font-semibold mb-3">Similar Suppliers</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {suppliers
+                {individualSuppliers
                   .filter(supplier => supplier.id !== selectedSupplier.id && 
                     (supplier.product.includes(selectedSupplier.product.split(' ')[0]) || 
                      selectedSupplier.product.includes(supplier.product.split(' ')[0])))
