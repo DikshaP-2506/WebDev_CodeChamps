@@ -229,7 +229,7 @@ export class ReceiptGenerator {
       ['Subtotal:', `₹${receiptData.subtotal.toFixed(2)}`],
       ...(receiptData.groupDiscount ? [['Group Discount:', `-₹${receiptData.groupDiscount.toFixed(2)}`]] : []),
       ...(receiptData.deliveryCharge ? [['Delivery Charges:', `₹${receiptData.deliveryCharge.toFixed(2)}`]] : []),
-      ['GST (18%):', `₹${receiptData.tax.toFixed(2)}`]
+      ['GST (5%):', `₹${receiptData.tax.toFixed(2)}`]
     ];
     
     pdf.setFont('helvetica', 'normal');

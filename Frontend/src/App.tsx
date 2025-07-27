@@ -15,6 +15,7 @@ import OrderSummary from "./pages/vendor/OrderSummary";
 import CreateOrder from "./pages/vendor/CreateOrder";
 import NotFound from "./pages/NotFound";
 import { AuthProvider } from "./contexts/AuthContext";
+import ConvAIChatbot from "./components/ConvAIChatbot";
 
 const queryClient = new QueryClient();
 
@@ -25,6 +26,7 @@ const App = () => (
         <Toaster />
         <Sonner />
         <BrowserRouter>
+          <ConvAIChatbot />
           <Routes>
             <Route path="/" element={<Landing />} />
             <Route path="/vendor/login" element={<VendorAuth />} />

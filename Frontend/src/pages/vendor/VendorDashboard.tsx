@@ -505,7 +505,7 @@ const VendorDashboard = () => {
       : 0;
     
     const subtotal = productPrice * orderQuantity;
-    const tax = calculateTax(subtotal); // 18% GST
+    const tax = calculateTax(subtotal); // 5% GST
     const total = subtotal + deliveryCharge + tax;
 
     const paymentData = {
@@ -532,7 +532,7 @@ const VendorDashboard = () => {
     const subtotal = quantity * pricePerKg;
     const groupDiscount = calculateGroupDiscount(subtotal, group.discount);
     const discountedAmount = subtotal - groupDiscount;
-    const tax = calculateTax(discountedAmount); // 18% GST
+    const tax = calculateTax(discountedAmount); //  GST
     const total = discountedAmount + tax;
 
     const paymentData = {
@@ -2458,7 +2458,7 @@ const VendorDashboard = () => {
                           </div>
                         )}
                         <div className="flex justify-between">
-                          <span>GST (18%):</span>
+                          <span>GST (5%):</span>
                           <span>{formatAmount(paymentDetails.tax)}</span>
                         </div>
                         <div className="border-t pt-2 flex justify-between font-bold">
@@ -2501,7 +2501,7 @@ const VendorDashboard = () => {
                           <span>{formatAmount(paymentDetails.discountedAmount)}</span>
                         </div>
                         <div className="flex justify-between">
-                          <span>GST (18%):</span>
+                          <span>GST (5%):</span>
                           <span>{formatAmount(paymentDetails.tax)}</span>
                         </div>
                         <div className="border-t pt-2 flex justify-between font-bold">
