@@ -693,7 +693,27 @@ const VendorDashboard = () => {
     if (joinQuantity <= 0) {
       toast({
         title: "Invalid Quantity",
-        description: "Please enter a valid quantity",
+        description: "Please enter a valid quantity (minimum 1 kg)",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    const maxAvailable = parseInt(selectedGroup.targetQty.split(' ')[0]) - parseInt(selectedGroup.currentQty.split(' ')[0]);
+    
+    if (joinQuantity > maxAvailable) {
+      toast({
+        title: "Quantity Exceeds Limit",
+        description: `Maximum available quantity is ${maxAvailable} kg. Please reduce your order.`,
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (maxAvailable <= 0) {
+      toast({
+        title: "Group Order Full",
+        description: "This group order is now full. Please try another group.",
         variant: "destructive"
       });
       return;
@@ -1503,7 +1523,7 @@ const VendorDashboard = () => {
                       </div>
                       <button 
                         className="w-full bg-green-600 hover:bg-green-700 text-white py-2 rounded-lg font-medium transition-colors" 
-                        onClick={() => handleJoinGroupWithSuggestions(order)}
+                        onClick={() => handleJoinGroup(order)}
                       >
                         Join Group
                       </button>
@@ -1676,25 +1696,64 @@ const VendorDashboard = () => {
                 )}
               </div>
 
+              {/* Available Quantity Information */}
+              <div className="bg-green-50 rounded-lg p-3">
+                <div className="text-sm text-green-800">
+                  <strong>Available to Order:</strong> {parseInt(selectedGroup.targetQty.split(' ')[0]) - parseInt(selectedGroup.currentQty.split(' ')[0])} kg remaining
+                </div>
+                <div className="text-xs text-green-600 mt-1">
+                  Join now to secure your quantity before the group fills up!
+                </div>
+              </div>
+
               <div>
-                <label className="block text-sm font-medium mb-2">Your Quantity (kg)</label>
+                <label className="block text-sm font-medium mb-2">
+                  Your Quantity (kg) <span className="text-red-500">*</span>
+                </label>
                 <input
                   type="number"
                   value={joinQuantity}
-                  onChange={(e) => setJoinQuantity(parseInt(e.target.value) || 0)}
-                  className="w-full border rounded px-3 py-2"
+                  onChange={(e) => {
+                    const value = parseInt(e.target.value) || 0;
+                    const maxAvailable = parseInt(selectedGroup.targetQty.split(' ')[0]) - parseInt(selectedGroup.currentQty.split(' ')[0]);
+                    if (value <= maxAvailable && value >= 0) {
+                      setJoinQuantity(value);
+                    }
+                  }}
+                  className="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-500"
                   min="1"
                   max={parseInt(selectedGroup.targetQty.split(' ')[0]) - parseInt(selectedGroup.currentQty.split(' ')[0])}
+                  placeholder={`Enter quantity (max: ${parseInt(selectedGroup.targetQty.split(' ')[0]) - parseInt(selectedGroup.currentQty.split(' ')[0])} kg)`}
                 />
+                <div className="flex justify-between text-xs text-gray-500 mt-1">
+                  <span>Minimum: 1 kg</span>
+                  <span>Maximum: {parseInt(selectedGroup.targetQty.split(' ')[0]) - parseInt(selectedGroup.currentQty.split(' ')[0])} kg</span>
+                </div>
+                {joinQuantity > (parseInt(selectedGroup.targetQty.split(' ')[0]) - parseInt(selectedGroup.currentQty.split(' ')[0])) && (
+                  <div className="text-red-500 text-xs mt-1">
+                    Quantity exceeds available amount. Maximum available: {parseInt(selectedGroup.targetQty.split(' ')[0]) - parseInt(selectedGroup.currentQty.split(' ')[0])} kg
+                  </div>
+                )}
               </div>
 
               {joinQuantity > 0 && (
                 <div className="bg-gray-50 p-3 rounded">
-                  <div className="flex justify-between text-sm">
-                    <span>Total Cost:</span>
-                    <span className="font-semibold">
-                      ₹{joinQuantity * parseInt(selectedGroup.pricePerKg.replace('₹', ''))}
-                    </span>
+                  <div className="text-sm space-y-1">
+                    <div className="flex justify-between">
+                      <span>Quantity:</span>
+                      <span className="font-semibold">{joinQuantity} kg</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Price per kg:</span>
+                      <span className="font-semibold">{selectedGroup.pricePerKg}</span>
+                    </div>
+                    <hr className="my-2" />
+                    <div className="flex justify-between text-base">
+                      <span className="font-semibold">Total Cost:</span>
+                      <span className="font-bold text-green-600">
+                        ₹{(joinQuantity * parseInt(selectedGroup.pricePerKg.replace('₹', ''))).toLocaleString()}
+                      </span>
+                    </div>
                   </div>
                 </div>
               )}
@@ -1707,10 +1766,21 @@ const VendorDashboard = () => {
               <Button 
                 variant="default" 
                 onClick={confirmJoinGroup}
-                disabled={joinQuantity <= 0}
-                className="bg-green-600 hover:bg-green-700 text-white"
+                disabled={
+                  joinQuantity <= 0 || 
+                  joinQuantity > (parseInt(selectedGroup.targetQty.split(' ')[0]) - parseInt(selectedGroup.currentQty.split(' ')[0])) ||
+                  (parseInt(selectedGroup.targetQty.split(' ')[0]) - parseInt(selectedGroup.currentQty.split(' ')[0])) <= 0
+                }
+                className="bg-green-600 hover:bg-green-700 text-white disabled:bg-gray-400 disabled:cursor-not-allowed"
               >
-                Confirm Join
+                {(parseInt(selectedGroup.targetQty.split(' ')[0]) - parseInt(selectedGroup.currentQty.split(' ')[0])) <= 0 
+                  ? "Group Full" 
+                  : joinQuantity <= 0 
+                  ? "Enter Quantity" 
+                  : joinQuantity > (parseInt(selectedGroup.targetQty.split(' ')[0]) - parseInt(selectedGroup.currentQty.split(' ')[0]))
+                  ? "Exceeds Limit"
+                  : `Join Group (₹${(joinQuantity * parseInt(selectedGroup.pricePerKg.replace('₹', ''))).toLocaleString()})`
+                }
               </Button>
             </div>
           </div>
