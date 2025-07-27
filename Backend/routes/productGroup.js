@@ -5,13 +5,13 @@ const { query } = require('../db');
 // Create a new product group
 router.post('/', async (req, res) => {
   try {
-    const { product, quantity, price, location, deadline, created_by, latitude, longitude } = req.body;
+    const { product, quantity, price, actualRate, finalRate, discountPercentage, location, deadline, created_by, latitude, longitude } = req.body;
     if (!product || !quantity || !location || !deadline || !created_by) {
       return res.status(400).json({ error: 'Missing required fields' });
     }
     const result = await query(
-      `INSERT INTO product_groups (product, quantity, price, location, deadline, status, created_by, latitude, longitude) VALUES (?, ?, ?, ?, ?, 'pending', ?, ?, ?)`,
-      [product, quantity, price || '', location, deadline, created_by, latitude || '', longitude || '']
+      `INSERT INTO product_groups (product, quantity, price, actual_rate, final_rate, discount_percentage, location, deadline, status, created_by, latitude, longitude) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?, ?)`,
+      [product, quantity, price || '', actualRate || '', finalRate || '', discountPercentage || '', location, deadline, created_by, latitude || '', longitude || '']
     );
     res.status(201).json({ message: 'Product group created', id: result.lastID });
   } catch (err) {

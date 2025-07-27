@@ -10,7 +10,7 @@ import { useNavigate } from "react-router-dom";
 import { Card, CardHeader, CardContent, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Package } from "lucide-react";
+import { Package, ArrowLeft } from "lucide-react";
 import { useAuth } from "../../contexts/AuthContext";
 
 const SupplierAuth: React.FC = () => {
@@ -70,7 +70,15 @@ const SupplierAuth: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-green-50">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-green-50 relative">
+      {/* Back Button */}
+      <button
+        onClick={() => navigate('/')}
+        className="absolute top-6 left-6 p-2 bg-white/80 hover:bg-white rounded-full shadow-md transition-all duration-200 flex items-center gap-2 text-gray-600 hover:text-gray-800"
+      >
+        <ArrowLeft className="w-4 h-4" />
+        <span className="text-sm font-medium">Back</span>
+      </button>
       <Card className="w-full max-w-md shadow-xl border-2 border-supplier/30">
         <CardHeader className="flex flex-col items-center pb-2">
           <div className="w-16 h-16 bg-gradient-supplier rounded-full flex items-center justify-center mb-4">

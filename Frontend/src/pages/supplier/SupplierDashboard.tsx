@@ -17,7 +17,9 @@ const SupplierDashboard = () => {
   const [newGroup, setNewGroup] = useState({ 
     product: "", 
     quantity: "", 
-    price: "",
+    actualRate: "",
+    finalRate: "",
+    discountPercentage: "",
     location: "", 
     deadline: "", 
     deadlineTime: "",
@@ -37,6 +39,17 @@ const SupplierDashboard = () => {
   
   const { toast } = useToast();
   const [groupRequests, setGroupRequests] = useState<any[]>([]);
+
+  // Calculate discount percentage
+  const calculateDiscountPercentage = (actualRate: string, finalRate: string) => {
+    const actual = parseFloat(actualRate);
+    const final = parseFloat(finalRate);
+    if (actual > 0 && final > 0 && final <= actual) {
+      const discount = ((actual - final) / actual) * 100;
+      return discount.toFixed(1);
+    }
+    return "";
+  };
 
   // Auto-detect location on component mount
   useEffect(() => {
@@ -318,31 +331,16 @@ const SupplierDashboard = () => {
     );
   };
 
-  const individualOrders = [
-    {
-      id: 1,
-      vendor: "Rajesh Kumar",
-      product: "Mixed Vegetables",
-      quantity: "50 kg",
-      location: "Sector 18",
-      requestedPrice: "₹22/kg",
-      status: "New",
-      totalValue: "₹1,100"
-    }
-  ];
+  // Individual orders will be fetched from backend when implemented
+  const [individualOrders, setIndividualOrders] = useState([]);
+  const [confirmedOrders, setConfirmedOrders] = useState([]);
 
-  const confirmedOrders = [
-    {
-      id: 1,
-      type: "Group",
-      product: "Potatoes",
-      quantity: "400 kg",
-      vendors: 10,
-      deliveryDate: "Today",
-      value: "₹8,000",
-      status: "Ready to Ship"
-    }
-  ];
+  // Fetch individual and confirmed orders (to be implemented)
+  useEffect(() => {
+    // TODO: Implement API calls to fetch individual and confirmed orders
+    setIndividualOrders([]);
+    setConfirmedOrders([]);
+  }, []);
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -506,40 +504,9 @@ const SupplierDashboard = () => {
                     <Clock className="w-3 h-3 mr-1" />
                     <span>Due {formatDeadline(request.deadline)}</span>
                   </div>
-                  <div className="flex gap-1 mb-2">
-                    <button
-                      className="flex-1 bg-red-50 hover:bg-red-100 text-red-600 py-1.5 rounded text-xs font-medium transition-colors"
-                      onClick={async () => {
-                        try {
-                          await updateProductGroupStatus(request.id, 'declined');
-                          const groups = await fetchProductGroups();
-                          setGroupRequests(groups);
-                          toast({ title: 'Declined', description: 'Group request declined.' });
-                        } catch (err) {
-                          toast({ title: 'Error', description: 'Failed to decline group.', variant: 'destructive' });
-                        }
-                      }}
-                    >
-                      Decline
-                    </button>
-                    <button
-                      className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-1.5 rounded text-xs font-medium transition-colors"
-                      onClick={async () => {
-                        try {
-                          await updateProductGroupStatus(request.id, 'accepted');
-                          const groups = await fetchProductGroups();
-                          setGroupRequests(groups);
-                          toast({ title: 'Accepted', description: 'Group request accepted.' });
-                        } catch (err) {
-                          toast({ title: 'Error', description: 'Failed to accept group.', variant: 'destructive' });
-                        }
-                      }}
-                    >
-                      Accept
-                    </button>
-                  </div>
-                </div>
-              ))}
+
+                                  </div>
+                ))}
             </div>
             
             {getFilteredGroupRequests().length === 0 && (
@@ -568,39 +535,70 @@ const SupplierDashboard = () => {
               <h2 className="text-2xl font-bold mb-2">Individual Orders</h2>
               <p className="text-green-100 mb-4">Process direct vendor orders and requests</p>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-              {individualOrders.map((order) => (
-                <div key={order.id} className="bg-white rounded-lg shadow-sm border hover:shadow-md transition-shadow p-4">
-                  <div className="mb-3">
-                    <div className="w-full h-32 bg-green-100 rounded-lg flex items-center justify-center mb-3">
-                      <Package className="w-12 h-12 text-green-600" />
+            
+            {individualOrders.length === 0 ? (
+              <div className="text-center py-12">
+                <Package className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                <h3 className="text-lg font-semibold text-gray-600 mb-2">No Individual Orders</h3>
+                <p className="text-gray-500 mb-4">
+                  Individual orders from vendors will appear here when they place direct orders.
+                </p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                {individualOrders.map((order) => (
+                  <div key={order.id} className="bg-white rounded-lg shadow-sm border hover:shadow-md transition-shadow p-4">
+                    <div className="mb-3">
+                      <div className="w-full h-32 bg-green-100 rounded-lg flex items-center justify-center mb-3">
+                        <Package className="w-12 h-12 text-green-600" />
+                      </div>
+                    </div>
+                    <div className="font-semibold text-lg text-gray-900">{order.product}</div>
+                    <div className="text-gray-600 text-sm">by {order.vendor}</div>
+                    <div className="flex items-center text-xs text-gray-500 mt-1 mb-2">
+                      <MapPin className="w-3 h-3 mr-1" />
+                      <span>{order.location}</span>
+                      <span className="ml-2 bg-green-100 text-green-700 px-2 py-0.5 rounded text-xs">{order.status}</span>
+                    </div>
+                    <div className="text-green-600 font-bold text-lg mb-1">{order.totalValue}</div>
+                    <div className="flex items-center text-xs text-gray-500 mb-2">
+                      <span>Qty: {order.quantity}</span>
+                    </div>
+                    <div className="flex items-center text-xs text-gray-500 mb-3">
+                      <span>Price: {order.requestedPrice}</span>
+                    </div>
+                    <div className="flex gap-1 mb-2">
+                      <button 
+                        className="flex-1 bg-red-50 hover:bg-red-100 text-red-600 py-1.5 rounded text-xs font-medium transition-colors"
+                        onClick={async () => {
+                          try {
+                            // TODO: Implement individual order decline API
+                            toast({ title: 'Declined', description: 'Individual order declined.' });
+                          } catch (err) {
+                            toast({ title: 'Error', description: 'Failed to decline order.', variant: 'destructive' });
+                          }
+                        }}
+                      >
+                        Decline
+                      </button>
+                      <button 
+                        className="flex-1 bg-green-600 hover:bg-green-700 text-white py-1.5 rounded text-xs font-medium transition-colors"
+                        onClick={async () => {
+                          try {
+                            // TODO: Implement individual order accept API
+                            toast({ title: 'Accepted', description: 'Individual order accepted.' });
+                          } catch (err) {
+                            toast({ title: 'Error', description: 'Failed to accept order.', variant: 'destructive' });
+                          }
+                        }}
+                      >
+                        Accept
+                      </button>
                     </div>
                   </div>
-                  <div className="font-semibold text-lg text-gray-900">{order.product}</div>
-                  <div className="text-gray-600 text-sm">by {order.vendor}</div>
-                  <div className="flex items-center text-xs text-gray-500 mt-1 mb-2">
-                    <MapPin className="w-3 h-3 mr-1" />
-                    <span>{order.location}</span>
-                    <span className="ml-2 bg-green-100 text-green-700 px-2 py-0.5 rounded text-xs">{order.status}</span>
-                  </div>
-                  <div className="text-green-600 font-bold text-lg mb-1">{order.totalValue}</div>
-                  <div className="flex items-center text-xs text-gray-500 mb-2">
-                    <span>Qty: {order.quantity}</span>
-                  </div>
-                  <div className="flex items-center text-xs text-gray-500 mb-3">
-                    <span>Price: {order.requestedPrice}</span>
-                  </div>
-                  <div className="flex gap-1 mb-2">
-                    <button className="flex-1 bg-red-50 hover:bg-red-100 text-red-600 py-1.5 rounded text-xs font-medium transition-colors">
-                      Decline
-                    </button>
-                    <button className="flex-1 bg-green-600 hover:bg-green-700 text-white py-1.5 rounded text-xs font-medium transition-colors">
-                      Accept
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </TabsContent>
 
           <TabsContent value="confirmed" className="space-y-4">
@@ -608,48 +606,57 @@ const SupplierDashboard = () => {
               <h2 className="text-2xl font-bold mb-2">Confirmed Orders</h2>
               <p className="text-purple-100 mb-4">Track and manage your confirmed deliveries</p>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-              {confirmedOrders.map((order) => (
-                <div key={order.id} className="bg-white rounded-lg shadow-sm border hover:shadow-md transition-shadow p-4">
-                  <div className="mb-3">
-                    <div className="w-full h-32 bg-purple-100 rounded-lg flex items-center justify-center mb-3">
-                      <Package className="w-12 h-12 text-purple-600" />
+            
+            {confirmedOrders.length === 0 ? (
+              <div className="text-center py-12">
+                <Package className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                <h3 className="text-lg font-semibold text-gray-600 mb-2">No Confirmed Orders</h3>
+                <p className="text-gray-500 mb-4">
+                  Confirmed orders will appear here once you accept group requests or individual orders.
+                </p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                {confirmedOrders.map((order) => (
+                  <div key={order.id} className="bg-white rounded-lg shadow-sm border hover:shadow-md transition-shadow p-4">
+                    <div className="mb-3">
+                      <div className="w-full h-32 bg-purple-100 rounded-lg flex items-center justify-center mb-3">
+                        <Package className="w-12 h-12 text-purple-600" />
+                      </div>
                     </div>
+                    <div className="font-semibold text-lg text-gray-900">{order.product}</div>
+                    <div className="text-gray-600 text-sm">{order.type} Order</div>
+                    <div className="flex items-center text-xs text-gray-500 mt-1 mb-2">
+                      {order.vendors && <span>{order.vendors} vendors</span>}
+                      <span className={`ml-2 px-2 py-0.5 rounded text-xs ${order.status === 'Ready to Ship' ? 'bg-purple-100 text-purple-700' : 'bg-gray-100 text-gray-700'}`}>
+                        {order.status}
+                      </span>
+                    </div>
+                    <div className="text-purple-600 font-bold text-lg mb-1">{order.value}</div>
+                    <div className="flex items-center text-xs text-gray-500 mb-2">
+                      <span>Qty: {order.quantity}</span>
+                    </div>
+                    <div className="flex items-center text-xs text-gray-500 mb-3">
+                      <Clock className="w-3 h-3 mr-1" />
+                      <span>Deliver {order.deliveryDate}</span>
+                    </div>
+                    <button
+                      className="w-full bg-purple-600 hover:bg-purple-700 text-white py-2 rounded-lg font-medium transition-colors"
+                      onClick={async () => {
+                        try {
+                          // TODO: Implement confirmed order delivery API
+                          toast({ title: 'Delivered', description: 'Order marked as delivered.' });
+                        } catch (err) {
+                          toast({ title: 'Error', description: 'Failed to mark as delivered.', variant: 'destructive' });
+                        }
+                      }}
+                    >
+                      Mark as Delivered
+                    </button>
                   </div>
-                  <div className="font-semibold text-lg text-gray-900">{order.product}</div>
-                  <div className="text-gray-600 text-sm">{order.type} Order</div>
-                  <div className="flex items-center text-xs text-gray-500 mt-1 mb-2">
-                    {order.vendors && <span>{order.vendors} vendors</span>}
-                    <span className={`ml-2 px-2 py-0.5 rounded text-xs ${order.status === 'Ready to Ship' ? 'bg-purple-100 text-purple-700' : 'bg-gray-100 text-gray-700'}`}>
-                      {order.status}
-                    </span>
-                  </div>
-                  <div className="text-purple-600 font-bold text-lg mb-1">{order.value}</div>
-                  <div className="flex items-center text-xs text-gray-500 mb-2">
-                    <span>Qty: {order.quantity}</span>
-                  </div>
-                  <div className="flex items-center text-xs text-gray-500 mb-3">
-                    <Clock className="w-3 h-3 mr-1" />
-                    <span>Deliver {order.deliveryDate}</span>
-                  </div>
-                  <button
-                    className="w-full bg-purple-600 hover:bg-purple-700 text-white py-2 rounded-lg font-medium transition-colors"
-                    onClick={async () => {
-                      try {
-                        await updateProductGroupStatus(order.id, 'delivered');
-                        const groups = await fetchProductGroups();
-                        setGroupRequests(groups);
-                        toast({ title: 'Delivered', description: 'Order marked as delivered.' });
-                      } catch (err) {
-                        toast({ title: 'Error', description: 'Failed to mark as delivered.', variant: 'destructive' });
-                      }
-                    }}
-                  >
-                    Mark as Delivered
-                  </button>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </TabsContent>
         </Tabs>
       </div>
@@ -676,28 +683,29 @@ const SupplierDashboard = () => {
                   <div className="space-y-4">
                     <div>
                       <label className="block text-sm font-medium mb-2">Company Name</label>
-                      <input type="text" defaultValue="Green Valley Supplies" className="w-full border rounded px-3 py-2" />
+                      <input type="text" placeholder="Enter company name" className="w-full border rounded px-3 py-2" />
                     </div>
                     <div>
                       <label className="block text-sm font-medium mb-2">Business Type</label>
                       <select className="w-full border rounded px-3 py-2">
-                        <option>Wholesale Distributor</option>
-                        <option>Manufacturer</option>
-                        <option>Retailer</option>
-                        <option>Importer/Exporter</option>
+                        <option value="">Select business type</option>
+                        <option value="Wholesale Distributor">Wholesale Distributor</option>
+                        <option value="Manufacturer">Manufacturer</option>
+                        <option value="Retailer">Retailer</option>
+                        <option value="Importer/Exporter">Importer/Exporter</option>
                       </select>
                     </div>
                     <div>
                       <label className="block text-sm font-medium mb-2">GST Number</label>
-                      <input type="text" defaultValue="27AABCU9603R1ZX" className="w-full border rounded px-3 py-2" />
+                      <input type="text" placeholder="Enter GST number" className="w-full border rounded px-3 py-2" />
                     </div>
                     <div>
                       <label className="block text-sm font-medium mb-2">License Number</label>
-                      <input type="text" defaultValue="WB/2022/15847" className="w-full border rounded px-3 py-2" />
+                      <input type="text" placeholder="Enter license number" className="w-full border rounded px-3 py-2" />
                     </div>
                     <div>
                       <label className="block text-sm font-medium mb-2">Years in Business</label>
-                      <input type="number" defaultValue="8" className="w-full border rounded px-3 py-2" />
+                      <input type="number" placeholder="Enter years in business" className="w-full border rounded px-3 py-2" />
                     </div>
                     <div>
                       <label className="block text-sm font-medium mb-2">Employee Count</label>
@@ -718,24 +726,24 @@ const SupplierDashboard = () => {
                   <div className="space-y-4">
                     <div>
                       <label className="block text-sm font-medium mb-2">Primary Email</label>
-                      <input type="email" defaultValue="amit@greenvalleysupplies.com" className="w-full border rounded px-3 py-2" />
+                      <input type="email" placeholder="Enter primary email" className="w-full border rounded px-3 py-2" />
                     </div>
                     <div>
                       <label className="block text-sm font-medium mb-2">Phone Number</label>
-                      <input type="tel" defaultValue="+91 99887 76543" className="w-full border rounded px-3 py-2" />
+                      <input type="tel" placeholder="Enter phone number" className="w-full border rounded px-3 py-2" />
                     </div>
                     <div>
                       <label className="block text-sm font-medium mb-2">WhatsApp Business</label>
-                      <input type="tel" defaultValue="+91 99887 76543" className="w-full border rounded px-3 py-2" />
+                      <input type="tel" placeholder="Enter WhatsApp number" className="w-full border rounded px-3 py-2" />
                     </div>
                     <div>
                       <label className="block text-sm font-medium mb-2">Website</label>
-                      <input type="url" defaultValue="www.greenvalleysupplies.com" className="w-full border rounded px-3 py-2" />
+                      <input type="url" placeholder="Enter website URL" className="w-full border rounded px-3 py-2" />
                     </div>
                     <div>
                       <label className="block text-sm font-medium mb-2">Business Address</label>
                       <textarea 
-                        defaultValue="Plot 45, Industrial Area, Sector 22, Gurgaon, Haryana 122015"
+                        placeholder="Enter business address"
                         className="w-full border rounded px-3 py-2"
                         rows={3}
                       />
@@ -753,19 +761,19 @@ const SupplierDashboard = () => {
                       <label className="block text-sm font-medium mb-2">Product Categories</label>
                       <div className="space-y-2">
                         <label className="flex items-center">
-                          <input type="checkbox" defaultChecked className="mr-2" />
+                          <input type="checkbox" className="mr-2" />
                           Fresh Vegetables
                         </label>
                         <label className="flex items-center">
-                          <input type="checkbox" defaultChecked className="mr-2" />
+                          <input type="checkbox" className="mr-2" />
                           Fruits
                         </label>
                         <label className="flex items-center">
-                          <input type="checkbox" defaultChecked className="mr-2" />
+                          <input type="checkbox" className="mr-2" />
                           Spices
                         </label>
                         <label className="flex items-center">
-                          <input type="checkbox" defaultChecked className="mr-2" />
+                          <input type="checkbox" className="mr-2" />
                           Grains
                         </label>
                         <label className="flex items-center">
@@ -898,16 +906,56 @@ const SupplierDashboard = () => {
                 />
               </div>
               
-              <div>
-                <label className="block text-sm font-medium mb-2">Price *</label>
-                <input
-                  type="text"
-                  placeholder="e.g., 25/kg"
-                  value={newGroup.price}
-                  onChange={e => setNewGroup({ ...newGroup, price: e.target.value })}
-                  className="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium mb-2">Actual Rate (₹/kg) *</label>
+                  <input
+                    type="number"
+                    placeholder="e.g., 25"
+                    value={newGroup.actualRate}
+                    onChange={e => {
+                      const actualRate = e.target.value;
+                      const discount = calculateDiscountPercentage(actualRate, newGroup.finalRate);
+                      setNewGroup({ 
+                        ...newGroup, 
+                        actualRate,
+                        discountPercentage: discount
+                      });
+                    }}
+                    className="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-2">Final Rate (₹/kg) *</label>
+                  <input
+                    type="number"
+                    placeholder="e.g., 20"
+                    value={newGroup.finalRate}
+                    onChange={e => {
+                      const finalRate = e.target.value;
+                      const discount = calculateDiscountPercentage(newGroup.actualRate, finalRate);
+                      setNewGroup({ 
+                        ...newGroup, 
+                        finalRate,
+                        discountPercentage: discount
+                      });
+                    }}
+                    className="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
               </div>
+              
+              {newGroup.discountPercentage && (
+                <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium text-green-800">Discount Calculated:</span>
+                    <span className="text-lg font-bold text-green-600">{newGroup.discountPercentage}% OFF</span>
+                  </div>
+                  <div className="text-xs text-green-600 mt-1">
+                    Actual: ₹{newGroup.actualRate}/kg → Final: ₹{newGroup.finalRate}/kg
+                  </div>
+                </div>
+              )}
               
               <div>
                 <label className="block text-sm font-medium mb-2">Delivery Location *</label>
@@ -994,13 +1042,16 @@ const SupplierDashboard = () => {
               <Button
                 className="bg-blue-600 hover:bg-blue-700 text-white"
                 onClick={async () => {
-                  if (newGroup.product && newGroup.quantity && newGroup.price && newGroup.location && newGroup.deadline && newGroup.deadlineTime) {
+                  if (newGroup.product && newGroup.quantity && newGroup.actualRate && newGroup.finalRate && newGroup.location && newGroup.deadline && newGroup.deadlineTime) {
                     const deadlineDateTime = `${newGroup.deadline}T${newGroup.deadlineTime}`;
                     try {
                       await createProductGroup({
                         product: newGroup.product,
                         quantity: newGroup.quantity,
-                        price: newGroup.price,
+                        price: `${newGroup.finalRate}/kg`,
+                        actualRate: newGroup.actualRate,
+                        finalRate: newGroup.finalRate,
+                        discountPercentage: newGroup.discountPercentage,
                         location: newGroup.location,
                         deadline: deadlineDateTime,
                         created_by: 1,
@@ -1018,7 +1069,9 @@ const SupplierDashboard = () => {
                       setNewGroup({ 
                         product: "", 
                         quantity: "", 
-                        price: "",
+                        actualRate: "",
+                        finalRate: "",
+                        discountPercentage: "",
                         location: autoFillLocation && currentLocation ? currentLocation.name : "", 
                         deadline: "", 
                         deadlineTime: "",
@@ -1040,7 +1093,7 @@ const SupplierDashboard = () => {
                     });
                   }
                 }}
-                disabled={!newGroup.product || !newGroup.quantity || !newGroup.price || !newGroup.location || !newGroup.deadline || !newGroup.deadlineTime}
+                disabled={!newGroup.product || !newGroup.quantity || !newGroup.actualRate || !newGroup.finalRate || !newGroup.location || !newGroup.deadline || !newGroup.deadlineTime}
               >
                 Create Group
               </Button>

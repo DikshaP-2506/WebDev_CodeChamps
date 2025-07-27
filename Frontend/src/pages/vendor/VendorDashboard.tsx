@@ -896,6 +896,9 @@ const VendorDashboard = () => {
     id: group.id,
     product: group.product,
     pricePerKg: group.price || "N/A",
+    actualRate: group.actual_rate || "",
+    finalRate: group.final_rate || "",
+    discountPercentage: group.discount_percentage || "",
     targetQty: group.quantity || "N/A",
     currentQty: group.currentQty || "0",
     deadline: group.deadline,
@@ -1372,7 +1375,9 @@ const VendorDashboard = () => {
                       <div className="text-gray-600 text-sm">by {order.supplier}</div>
                       <div className="flex items-center text-xs text-gray-500 mt-1 mb-2">
                         <span>{order.participants} members</span>
-                        <span className="ml-2 bg-green-100 text-green-700 px-2 py-0.5 rounded text-xs">{order.discount || '15%'} OFF</span>
+                        <span className="ml-2 bg-green-100 text-green-700 px-2 py-0.5 rounded text-xs">
+                          {order.discountPercentage || order.discount || '15%'} OFF
+                        </span>
                       </div>
                       
                       {/* Location Info */}
@@ -1386,7 +1391,20 @@ const VendorDashboard = () => {
                         )}
                       </div>
                       
-                      <div className="text-green-600 font-bold text-lg mb-1">{order.pricePerKg}</div>
+                      {/* Price Information */}
+                      <div className="mb-2">
+                        <div className="text-green-600 font-bold text-lg mb-1">
+                          ₹{order.finalRate || order.pricePerKg}
+                        </div>
+                        {order.actualRate && order.finalRate && (
+                          <div className="text-xs text-gray-500">
+                            <span className="line-through">₹{order.actualRate}/kg</span>
+                            <span className="ml-2 text-green-600 font-medium">
+                              Final: ₹{order.finalRate}/kg
+                            </span>
+                          </div>
+                        )}
+                      </div>
                       <div className="flex items-center text-xs text-gray-500 mb-3">
                         <span>Target: {order.targetQty}</span>
                         <span className="ml-2">Current: {order.currentQty}</span>

@@ -19,11 +19,23 @@ export async function fetchProductGroups(params: Record<string, any> = {}) {
 }
 
 export async function updateProductGroupStatus(id: number, status: 'accepted' | 'declined' | 'delivered') {
+  console.log(`Making API call to update status: ${API_BASE}/${id}/status with status: ${status}`);
+  
   const res = await fetch(`${API_BASE}/${id}/status`, {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ status }),
   });
-  if (!res.ok) throw new Error('Failed to update product group status');
-  return res.json();
+  
+  console.log(`API response status: ${res.status}`);
+  
+  if (!res.ok) {
+    const errorText = await res.text();
+    console.error(`API error response: ${errorText}`);
+    throw new Error(`Failed to update product group status: ${res.status} ${errorText}`);
+  }
+  
+  const result = await res.json();
+  console.log(`API success response:`, result);
+  return result;
 } 
