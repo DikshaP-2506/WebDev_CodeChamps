@@ -17,6 +17,8 @@ const SupplierProfileSetup: React.FC = () => {
   const { toast } = useToast();
   const { setProfileCompleted } = useAuth();
   const [loading, setLoading] = useState(false);
+  const [existingProfileId, setExistingProfileId] = useState<number | null>(null);
+  const [isEditMode, setIsEditMode] = useState(false);
   const [formData, setFormData] = useState({
     fullName: "",
     mobileNumber: "",
@@ -46,13 +48,69 @@ const SupplierProfileSetup: React.FC = () => {
     exportLicense: ""
   });
 
-  // Get user's phone number from Firebase Auth if available
+  // Get user's phone number from Firebase Auth if available and fetch existing profile
   useEffect(() => {
+    console.log("SupplierProfileSetup component mounted");
     const user = auth.currentUser;
-    if (user?.phoneNumber) {
-      setFormData(prev => ({ ...prev, mobileNumber: user.phoneNumber }));
-    }
-  }, []);
+    console.log("Current user:", user ? user.uid : "No user");
+    
+    const fetchExistingProfile = async () => {
+      if (user?.uid) {
+        try {
+          console.log("Fetching existing supplier profile for UID:", user.uid);
+          const response = await supplierApi.getByUserId(user.uid);
+          console.log("Existing supplier profile found:", response.supplier);
+          
+          // Pre-fill form with existing profile data
+          const profile = response.supplier;
+          setExistingProfileId(profile.id || null);
+          setIsEditMode(true);
+          setFormData({
+            fullName: profile.fullName || "",
+            mobileNumber: profile.mobileNumber || user.phoneNumber || "",
+            languagePreference: profile.languagePreference || "",
+            businessName: profile.businessName || "",
+            businessAddress: profile.businessAddress || "",
+            city: profile.city || "",
+            pincode: profile.pincode || "",
+            state: profile.state || "",
+            businessType: profile.businessType || "",
+            supplyCapabilities: profile.supplyCapabilities || [],
+            preferredDeliveryTime: profile.preferredDeliveryTime || "",
+            latitude: profile.latitude || "",
+            longitude: profile.longitude || "",
+            // Additional Business Information
+            gstNumber: profile.gstNumber || "",
+            licenseNumber: profile.licenseNumber || "",
+            yearsInBusiness: profile.yearsInBusiness || "",
+            employeeCount: profile.employeeCount || "",
+            // Additional Contact Information
+            primaryEmail: profile.primaryEmail || "",
+            whatsappBusiness: profile.whatsappBusiness || "",
+            // Certifications
+            foodSafetyLicense: profile.foodSafetyLicense || "",
+            organicCertification: profile.organicCertification || "",
+            isoCertification: profile.isoCertification || "",
+            exportLicense: profile.exportLicense || ""
+          });
+          
+          toast({
+            title: "Profile Loaded",
+            description: "Your existing profile data has been loaded for editing.",
+          });
+          
+        } catch (error) {
+          console.log("No existing profile found or error fetching profile:", error);
+          // Profile doesn't exist yet, just set phone number if available
+          if (user?.phoneNumber) {
+            setFormData(prev => ({ ...prev, mobileNumber: user.phoneNumber }));
+          }
+        }
+      }
+    };
+
+    fetchExistingProfile();
+  }, [toast]);
 
   const handleInputChange = (field: string, value: string | string[]) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -136,7 +194,8 @@ const SupplierProfileSetup: React.FC = () => {
       }
 
       // Save the profile data using our API service
-      const result = await supplierApi.create({
+      let result;
+      const profileData = {
         firebaseUserId: currentUser.uid, // Add Firebase UID
         fullName: formData.fullName,
         mobileNumber: formData.mobileNumber,
@@ -164,16 +223,24 @@ const SupplierProfileSetup: React.FC = () => {
         organicCertification: formData.organicCertification,
         isoCertification: formData.isoCertification,
         exportLicense: formData.exportLicense
-      });
+      };
 
-      console.log('Supplier profile created:', result);
+      if (isEditMode && existingProfileId) {
+        result = await supplierApi.update(existingProfileId, profileData);
+        console.log('Supplier profile updated:', result);
+      } else {
+        result = await supplierApi.create(profileData);
+        console.log('Supplier profile created:', result);
+      }
 
       // Set profile as completed
       setProfileCompleted(true);
 
       toast({
-        title: "Profile Setup Complete!",
-        description: "Your supplier profile has been created successfully.",
+        title: isEditMode ? "Profile Updated!" : "Profile Setup Complete!",
+        description: isEditMode 
+          ? "Your supplier profile has been updated successfully."
+          : "Your supplier profile has been created successfully.",
       });
 
       // Redirect to supplier dashboard
@@ -207,9 +274,14 @@ const SupplierProfileSetup: React.FC = () => {
             <div className="w-16 h-16 bg-gradient-supplier rounded-full flex items-center justify-center mx-auto mb-4">
               <Package className="w-8 h-8 text-white" />
             </div>
-            <CardTitle className="text-2xl">Complete Your Supplier Profile</CardTitle>
+            <CardTitle className="text-2xl">
+              {isEditMode ? "Edit Your Supplier Profile" : "Complete Your Supplier Profile"}
+            </CardTitle>
             <CardDescription>
-              Help us understand your business better to connect you with the right vendors
+              {isEditMode 
+                ? "Update your business information to keep your profile current"
+                : "Help us understand your business better to connect you with the right vendors"
+              }
             </CardDescription>
           </CardHeader>
           
@@ -542,7 +614,10 @@ const SupplierProfileSetup: React.FC = () => {
                 className="w-full"
                 disabled={loading}
               >
-                {loading ? "Setting up profile..." : "Complete Profile Setup"}
+                {loading 
+                  ? (isEditMode ? "Updating profile..." : "Setting up profile...") 
+                  : (isEditMode ? "Update Profile" : "Complete Profile Setup")
+                }
               </Button>
             </form>
           </CardContent>

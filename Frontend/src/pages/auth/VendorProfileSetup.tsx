@@ -17,6 +17,8 @@ const VendorProfileSetup: React.FC = () => {
   const { toast } = useToast();
   const { setProfileCompleted } = useAuth();
   const [loading, setLoading] = useState(false);
+  const [existingProfileId, setExistingProfileId] = useState<number | null>(null);
+  const [isEditMode, setIsEditMode] = useState(false);
   const [formData, setFormData] = useState({
     fullName: "",
     mobileNumber: "",
@@ -33,15 +35,56 @@ const VendorProfileSetup: React.FC = () => {
     longitude: ""
   });
 
-  // Get user's phone number from Firebase Auth if available
+  // Get user's phone number from Firebase Auth if available and fetch existing profile
   useEffect(() => {
     console.log("VendorProfileSetup component mounted");
     const user = auth.currentUser;
     console.log("Current user:", user ? user.uid : "No user");
-    if (user?.phoneNumber) {
-      setFormData(prev => ({ ...prev, mobileNumber: user.phoneNumber }));
-    }
-  }, []);
+    
+    const fetchExistingProfile = async () => {
+      if (user?.uid) {
+        try {
+          console.log("Fetching existing vendor profile for UID:", user.uid);
+          const response = await vendorApi.getByUserId(user.uid);
+          console.log("Existing vendor profile found:", response.vendor);
+          
+          // Pre-fill form with existing profile data
+          const profile = response.vendor;
+          setExistingProfileId(profile.id || null);
+          setIsEditMode(true);
+          setFormData({
+            fullName: profile.fullName || "",
+            mobileNumber: profile.mobileNumber || user.phoneNumber || "",
+            languagePreference: profile.languagePreference || "",
+            stallName: profile.stallName || "",
+            stallAddress: profile.stallAddress || "",
+            city: profile.city || "",
+            pincode: profile.pincode || "",
+            state: profile.state || "",
+            stallType: profile.stallType || "",
+            rawMaterialNeeds: profile.rawMaterialNeeds || [],
+            preferredDeliveryTime: profile.preferredDeliveryTime || "",
+            latitude: profile.latitude || "",
+            longitude: profile.longitude || ""
+          });
+          
+          toast({
+            title: "Profile Loaded",
+            description: "Your existing profile data has been loaded for editing.",
+          });
+          
+        } catch (error) {
+          console.log("No existing profile found or error fetching profile:", error);
+          // Profile doesn't exist yet, just set phone number if available
+          if (user?.phoneNumber) {
+            setFormData(prev => ({ ...prev, mobileNumber: user.phoneNumber }));
+          }
+        }
+      }
+    };
+
+    fetchExistingProfile();
+  }, [toast]);
 
   const handleInputChange = (field: string, value: string | string[]) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -119,20 +162,34 @@ const VendorProfileSetup: React.FC = () => {
         throw new Error("No authenticated user found");
       }
 
-      // Send data to backend API using our API service
-      const dataWithUserId = {
-        ...formData,
-        firebaseUserId: currentUser.uid
-      };
-      const result = await vendorApi.create(dataWithUserId);
+      let result;
+      
+      if (isEditMode && existingProfileId) {
+        // Update existing profile
+        console.log("Updating existing vendor profile with ID:", existingProfileId);
+        result = await vendorApi.update(existingProfileId, formData);
+        
+        toast({
+          title: "Profile Updated!",
+          description: "Your vendor profile has been updated successfully.",
+        });
+      } else {
+        // Create new profile
+        console.log("Creating new vendor profile");
+        const dataWithUserId = {
+          ...formData,
+          firebaseUserId: currentUser.uid
+        };
+        result = await vendorApi.create(dataWithUserId);
+        
+        toast({
+          title: "Profile Created!",
+          description: "Your vendor profile has been created successfully.",
+        });
+      }
 
       // Set profile as completed
       setProfileCompleted(true);
-
-      toast({
-        title: "Profile Setup Complete!",
-        description: "Your vendor profile has been created successfully.",
-      });
 
       // Redirect to vendor dashboard
       navigate("/vendor/dashboard");
@@ -166,9 +223,14 @@ const VendorProfileSetup: React.FC = () => {
             <div className="w-16 h-16 bg-gradient-vendor rounded-full flex items-center justify-center mx-auto mb-4">
               <ShoppingCart className="w-8 h-8 text-white" />
             </div>
-            <CardTitle className="text-2xl">Complete Your Vendor Profile</CardTitle>
+            <CardTitle className="text-2xl">
+              {isEditMode ? 'Edit Your Vendor Profile' : 'Complete Your Vendor Profile'}
+            </CardTitle>
             <CardDescription>
-              Help us understand your business better to provide personalized services
+              {isEditMode 
+                ? 'Update your business information and preferences' 
+                : 'Help us understand your business better to provide personalized services'
+              }
             </CardDescription>
           </CardHeader>
           
@@ -375,7 +437,10 @@ const VendorProfileSetup: React.FC = () => {
                 className="w-full"
                 disabled={loading}
               >
-                {loading ? "Setting up profile..." : "Complete Profile Setup"}
+                {loading 
+                  ? (isEditMode ? "Updating profile..." : "Setting up profile...") 
+                  : (isEditMode ? "Update Profile" : "Complete Profile Setup")
+                }
               </Button>
             </form>
           </CardContent>
