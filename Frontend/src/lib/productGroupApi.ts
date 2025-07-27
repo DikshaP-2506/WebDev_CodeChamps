@@ -1,14 +1,22 @@
 const API_BASE = 'http://localhost:5000/api/product-groups';
 
 export async function createProductGroup(data: any) {
-  // data should include price if present
+  console.log('Creating product group with data:', data);
   const res = await fetch(API_BASE, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),
   });
-  if (!res.ok) throw new Error('Failed to create product group');
-  return res.json();
+  
+  if (!res.ok) {
+    const errorText = await res.text();
+    console.error('API Error Response:', errorText);
+    throw new Error(`Failed to create product group: ${res.status} - ${errorText}`);
+  }
+  
+  const result = await res.json();
+  console.log('Product group created successfully:', result);
+  return result;
 }
 
 export async function fetchProductGroups(params: Record<string, any> = {}) {

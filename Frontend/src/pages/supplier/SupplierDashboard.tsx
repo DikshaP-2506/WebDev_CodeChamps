@@ -66,8 +66,8 @@ const SupplierDashboard = () => {
   useEffect(() => {
     const fetchSupplierProfile = async () => {
       if (!user?.uid) {
-        console.log('No user UID available');
-        setProfileLoading(false);
+        console.log('No user UID available - redirecting to auth');
+        navigate('/supplier/auth');
         return;
       }
 
@@ -79,38 +79,31 @@ const SupplierDashboard = () => {
         const response = await supplierApi.getByUserId(user.uid);
         console.log('Supplier profile response:', response);
         const profile = response.supplier;
+        console.log('Supplier profile data:', profile);
         setSupplierData(profile);
         setEditFormData(profile); // Initialize edit form with loaded data
       } catch (error) {
         console.error('Error fetching supplier profile:', error);
         
-        // Fallback: Try to get all suppliers and show a selection modal
-        // This is temporary for development when Firebase UIDs aren't linked
-        try {
-          console.log('Trying fallback - fetch all suppliers');
-          const allSuppliersResponse = await supplierApi.getAll();
-          if (allSuppliersResponse.suppliers.length > 0) {
-            // For now, use the first supplier as fallback (you can modify this)
-            const fallbackProfile = allSuppliersResponse.suppliers.find(s => s.fullName === 'Atharv') || allSuppliersResponse.suppliers[0];
-            console.log('Using fallback profile:', fallbackProfile);
-            setSupplierData(fallbackProfile);
-            setEditFormData(fallbackProfile);
-            
-            toast({
-              title: "Profile Loaded (Fallback)",
-              description: `Loaded profile for ${fallbackProfile.fullName}. Firebase UID linking needed.`,
-              variant: "default"
-            });
-          } else {
-            throw new Error('No supplier profiles found');
-          }
-        } catch (fallbackError) {
-          console.error('Fallback also failed:', fallbackError);
+        // If profile not found, redirect to profile setup
+        if (error.message?.includes('not found') || error.status === 404) {
+          toast({
+            title: "Profile Setup Required",
+            description: "Please complete your supplier profile setup.",
+            variant: "default"
+          });
+          navigate('/supplier/profile-setup');
+        } else {
+          // For other errors, show error message
           toast({
             title: "Error",
             description: `Failed to load profile data: ${error.message || 'Unknown error'}`,
             variant: "destructive"
           });
+          // Optionally redirect to auth if there's an authentication issue
+          if (error.status === 401 || error.status === 403) {
+            navigate('/supplier/auth');
+          }
         }
       } finally {
         setProfileLoading(false);
@@ -118,15 +111,22 @@ const SupplierDashboard = () => {
     };
 
     fetchSupplierProfile();
-  }, [user, toast]);
+  }, [user, toast, navigate]);
 
   // Fetch product groups from backend
   useEffect(() => {
     const loadGroups = async () => {
+      if (!supplierData?.id) {
+        console.log('No supplier data available, skipping group fetch');
+        return;
+      }
+
       try {
-        const groups = await fetchProductGroups();
+        // Only fetch groups created by this supplier
+        const groups = await fetchProductGroups({ created_by: supplierData.id });
         setGroupRequests(groups);
       } catch (err) {
+        console.error('Error fetching product groups:', err);
         toast({
           title: "Error",
           description: "Failed to fetch product groups.",
@@ -135,7 +135,7 @@ const SupplierDashboard = () => {
       }
     };
     loadGroups();
-  }, []);
+  }, [supplierData, toast]); // Add supplierData as dependency
 
   const checkLocationPermission = async () => {
     if (!navigator.geolocation) {
@@ -1307,8 +1307,32 @@ const SupplierDashboard = () => {
                 className="bg-blue-600 hover:bg-blue-700 text-white"
                 onClick={async () => {
                   if (newGroup.product && newGroup.quantity && newGroup.actualRate && newGroup.finalRate && newGroup.location && newGroup.deadline && newGroup.deadlineTime) {
+                    // Check if supplier data is available
+                    if (!supplierData?.id) {
+                      toast({
+                        title: "Profile Required",
+                        description: "Please complete your supplier profile setup before creating product groups.",
+                        variant: "destructive"
+                      });
+                      return;
+                    }
+
                     const deadlineDateTime = `${newGroup.deadline}T${newGroup.deadlineTime}`;
                     try {
+                      console.log('Creating product group with data:', {
+                        product: newGroup.product,
+                        quantity: newGroup.quantity,
+                        price: `${newGroup.finalRate}/kg`,
+                        actualRate: newGroup.actualRate,
+                        finalRate: newGroup.finalRate,
+                        discountPercentage: newGroup.discountPercentage,
+                        location: newGroup.location,
+                        deadline: deadlineDateTime,
+                        created_by: supplierData.id,
+                        latitude: newGroup.latitude,
+                        longitude: newGroup.longitude
+                      });
+
                       await createProductGroup({
                         product: newGroup.product,
                         quantity: newGroup.quantity,
@@ -1318,12 +1342,13 @@ const SupplierDashboard = () => {
                         discountPercentage: newGroup.discountPercentage,
                         location: newGroup.location,
                         deadline: deadlineDateTime,
-                        created_by: 1,
+                        created_by: supplierData.id,
                         latitude: newGroup.latitude,
                         longitude: newGroup.longitude
                       });
+                      
                       // Refetch groups after creation
-                      const groups = await fetchProductGroups();
+                      const groups = await fetchProductGroups({ created_by: supplierData.id });
                       setGroupRequests(groups);
                       toast({
                         title: "Product Group Created!",
@@ -1343,9 +1368,10 @@ const SupplierDashboard = () => {
                         longitude: autoFillLocation && currentLocation ? currentLocation.longitude.toString() : ""
                       });
                     } catch (err) {
+                      console.error('Error creating product group:', err);
                       toast({
                         title: "Error",
-                        description: "Failed to create product group.",
+                        description: `Failed to create product group: ${err.message || 'Unknown error'}`,
                         variant: "destructive"
                       });
                     }

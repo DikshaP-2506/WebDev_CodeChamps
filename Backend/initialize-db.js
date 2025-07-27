@@ -30,9 +30,18 @@ const initializeDatabase = () => {
       }
     });
 
-    // Create suppliers table
+    // Create suppliers table with all required columns
+    db.run(`DROP TABLE IF EXISTS suppliers`, (err) => {
+      if (err) {
+        console.error('Error dropping suppliers table:', err);
+      } else {
+        console.log('Dropped existing suppliers table');
+      }
+    });
+    
     db.run(`CREATE TABLE IF NOT EXISTS suppliers (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
+      firebase_user_id TEXT UNIQUE,
       full_name TEXT NOT NULL,
       mobile_number TEXT NOT NULL,
       language_preference TEXT NOT NULL,
@@ -44,6 +53,16 @@ const initializeDatabase = () => {
       business_type TEXT NOT NULL,
       supply_capabilities TEXT NOT NULL,
       preferred_delivery_time TEXT NOT NULL,
+      primary_email TEXT,
+      whatsapp_business TEXT,
+      gst_number TEXT,
+      license_number TEXT,
+      years_in_business TEXT,
+      employee_count TEXT,
+      food_safety_license TEXT,
+      organic_certification TEXT,
+      iso_certification TEXT,
+      export_license TEXT,
       latitude TEXT,
       longitude TEXT,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
@@ -55,7 +74,15 @@ const initializeDatabase = () => {
       }
     });
 
-    // Create product_groups table
+    // Create product_groups table with all required columns
+    db.run(`DROP TABLE IF EXISTS product_groups`, (err) => {
+      if (err) {
+        console.error('Error dropping product_groups table:', err);
+      } else {
+        console.log('Dropped existing product_groups table');
+      }
+    });
+    
     db.run(`CREATE TABLE IF NOT EXISTS product_groups (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       product TEXT NOT NULL,
