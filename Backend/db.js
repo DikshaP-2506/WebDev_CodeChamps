@@ -126,6 +126,7 @@ db.serialize(() => {
   db.run(`CREATE TABLE IF NOT EXISTS orders (
     id TEXT PRIMARY KEY,
     vendor_id INTEGER NOT NULL,
+    supplier_id INTEGER,
     order_type TEXT DEFAULT 'individual',
     items TEXT NOT NULL,
     subtotal REAL DEFAULT 0,
@@ -140,11 +141,28 @@ db.serialize(() => {
     delivery_address TEXT,
     delivery_date TEXT,
     notes TEXT,
+    customer_details TEXT,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (vendor_id) REFERENCES vendors (id)
+    FOREIGN KEY (vendor_id) REFERENCES vendors (id),
+    FOREIGN KEY (supplier_id) REFERENCES suppliers (id)
   )`);
   
+  // Add missing columns to orders table if they don't exist
+  const orderColumns = [
+    'supplier_id INTEGER',
+    'customer_details TEXT'
+  ];
+
+  orderColumns.forEach(column => {
+    const columnName = column.split(' ')[0];
+    db.run(`ALTER TABLE orders ADD COLUMN ${column}`, (err) => {
+      if (err && !err.message.includes('duplicate column name')) {
+        console.error(`Error adding ${columnName} column to orders:`, err.message);
+      }
+    });
+  });
+
   console.log('Database tables initialized successfully');
   
   // Create triggers to automatically update the updated_at column

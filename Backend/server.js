@@ -5,6 +5,7 @@ const vendorRoutes = require('./routes/vendor');
 const supplierRoutes = require('./routes/supplier');
 const productGroupRoutes = require('./routes/productGroup');
 const productRoutes = require('./routes/product');
+const orderRoutes = require('./routes/order');
 
 const app = express();
 
@@ -42,6 +43,7 @@ app.use('/api/vendors', vendorRoutes);
 app.use('/api/suppliers', supplierRoutes);
 app.use('/api/product-groups', productGroupRoutes);
 app.use('/api/products', productRoutes);
+app.use('/api/orders', orderRoutes);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {

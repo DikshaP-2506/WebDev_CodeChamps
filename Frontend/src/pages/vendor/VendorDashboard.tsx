@@ -10,6 +10,7 @@ import { usePayment } from "@/hooks/use-payment";
 import { PaymentSuccess } from "@/components/PaymentSuccess";
 import { useAuth } from "@/contexts/AuthContext";
 import { vendorApi } from "@/services/vendorApi";
+import { orderApi } from "@/services/orderApi";
 import { 
   generateOrderId, 
   formatAmount,
@@ -83,6 +84,10 @@ const VendorDashboard = () => {
   });
   const [isSavingProfile, setIsSavingProfile] = useState(false);
 
+  // Order-related states
+  const [vendorOrders, setVendorOrders] = useState([]);
+  const [ordersLoading, setOrdersLoading] = useState(true);
+
   // Auto-detect location on component mount
   useEffect(() => {
     checkLocationPermission();
@@ -136,6 +141,128 @@ const VendorDashboard = () => {
 
     fetchVendorProfile();
   }, [user, toast]);
+
+  // Function to save order to database
+  const saveOrderToDatabase = async (paymentData, paymentResponse) => {
+    try {
+      console.log('Saving order to database:', paymentData);
+      
+      if (!vendorProfile?.id) {
+        console.error('Vendor profile not loaded');
+        toast({
+          title: "Warning",
+          description: "Order placed but vendor profile missing. Please contact support.",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      // Find supplier ID if this is an individual order
+      let supplierId = null;
+      if (paymentData.type === 'individual' && paymentData.supplier?.id) {
+        supplierId = paymentData.supplier.id;
+      }
+
+      // Prepare order items
+      const orderItems = [{
+        name: paymentData.type === 'individual' ? paymentData.product : paymentData.group?.product,
+        quantity: paymentData.quantity,
+        pricePerKg: paymentData.pricePerKg,
+        subtotal: paymentData.subtotal
+      }];
+
+      // Prepare customer details
+      const customerDetails = {
+        name: userDetails.name,
+        email: userDetails.email,
+        phone: userDetails.phone,
+        address: currentLocation?.name || 'Location not provided'
+      };
+
+      const orderData = {
+        id: paymentData.orderId,
+        vendor_id: vendorProfile.id,
+        supplier_id: supplierId,
+        order_type: paymentData.type,
+        items: orderItems,
+        subtotal: paymentData.subtotal,
+        tax: paymentData.tax,
+        delivery_charge: paymentData.deliveryCharge || 0,
+        group_discount: paymentData.groupDiscount || 0,
+        total_amount: paymentData.total,
+        status: 'confirmed',
+        payment_status: 'completed',
+        payment_method: paymentResponse?.razorpay_payment_id ? 'online' : 'cod',
+        payment_id: paymentResponse?.razorpay_payment_id || paymentResponse?.paymentId,
+        delivery_address: currentLocation?.name,
+        delivery_date: null,
+        notes: null,
+        customer_details: customerDetails
+      };
+
+      console.log('Order data to save:', orderData);
+      
+      const response = await orderApi.create(orderData);
+      console.log('Order saved successfully:', response);
+      
+      toast({
+        title: "Order Confirmed! 🎉",
+        description: `Order ${paymentData.orderId} has been saved successfully.`,
+      });
+
+      // Refresh orders list
+      fetchVendorOrders();
+
+    } catch (error) {
+      console.error('Error saving order to database:', error);
+      toast({
+        title: "Order Partially Complete",
+        description: "Payment successful but order save failed. Please contact support with your payment ID.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  // Function to fetch vendor orders
+  const fetchVendorOrders = async () => {
+    try {
+      if (!vendorProfile?.id) {
+        setOrdersLoading(false);
+        return;
+      }
+
+      console.log('Fetching orders for vendor:', vendorProfile.id);
+      const response = await orderApi.getByVendorId(vendorProfile.id);
+      console.log('Vendor orders response:', response);
+      
+      // Parse JSON fields
+      const ordersWithParsedData = response.orders.map(order => ({
+        ...order,
+        items: typeof order.items === 'string' ? JSON.parse(order.items) : order.items,
+        customer_details: order.customer_details ? 
+          (typeof order.customer_details === 'string' ? JSON.parse(order.customer_details) : order.customer_details) 
+          : null
+      }));
+
+      setVendorOrders(ordersWithParsedData);
+    } catch (error) {
+      console.error('Error fetching vendor orders:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load your orders. Please refresh the page.",
+        variant: "destructive"
+      });
+    } finally {
+      setOrdersLoading(false);
+    }
+  };
+
+  // Fetch vendor orders when vendor profile is loaded
+  useEffect(() => {
+    if (vendorProfile?.id) {
+      fetchVendorOrders();
+    }
+  }, [vendorProfile]);
 
   const checkLocationPermission = async () => {
     if (!navigator.geolocation) {
@@ -457,7 +584,7 @@ const VendorDashboard = () => {
           quantity: paymentDetails.quantity
         };
 
-        await processCODPayment(codPaymentData, () => {
+        await processCODPayment(codPaymentData, async () => {
           // Prepare success data for COD
           const successData = {
             paymentId: `COD_${Date.now()}`,
@@ -479,6 +606,9 @@ const VendorDashboard = () => {
               address: currentLocation?.name || 'Not provided'
             }
           };
+
+          // Save order to database
+          await saveOrderToDatabase(paymentDetails, successData);
 
           setPaymentSuccessData(successData);
           setShowPaymentModal(false);
@@ -505,7 +635,7 @@ const VendorDashboard = () => {
       await processRazorpayPayment(
         razorpayPaymentData,
         userDetails,
-        (response) => {
+        async (response) => {
           console.log('Payment successful:', response);
           
           // Prepare success data with all receipt information
@@ -529,6 +659,9 @@ const VendorDashboard = () => {
               address: currentLocation?.name || 'Not provided'
             }
           };
+
+          // Save order to database
+          await saveOrderToDatabase(paymentDetails, response);
 
           setPaymentSuccessData(successData);
           setShowPaymentModal(false);
@@ -1409,21 +1542,68 @@ const VendorDashboard = () => {
             <div className="bg-purple-500 text-white rounded-lg p-6 mb-6">
               <h2 className="text-2xl font-bold mb-2">My Orders</h2>
               <p className="text-purple-100 mb-4">Track your order history</p>
-                      </div>
+            </div>
+            
             <div className="space-y-4">
-              <div className="bg-white rounded-lg shadow-sm border hover:shadow-md transition-shadow p-5 flex flex-col md:flex-row md:items-center md:justify-between">
-                <div className="flex-1 mb-4 md:mb-0">
-                  <div className="font-semibold text-lg text-gray-900 mb-1">Rice (50kg)</div>
-                  <div className="text-gray-600 text-sm mb-1">ABC Suppliers</div>
-                  <div className="text-xs text-gray-500">2024-01-20</div>
-                    </div>
-                <div className="flex flex-col items-end min-w-[140px]">
-                  <div className="text-lg font-semibold text-purple-600 mb-2">₹2,500</div>
-                  <div className="text-green-600 text-sm mb-2 font-medium">Delivered</div>
-                  <Button variant="outline" size="sm" className="font-medium border-purple-500 text-purple-600 hover:bg-purple-50">Track</Button>
-                        </div>
+              {ordersLoading ? (
+                <div className="flex items-center justify-center py-12">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
+                  <span className="ml-2 text-gray-600">Loading your orders...</span>
+                </div>
+              ) : vendorOrders.length === 0 ? (
+                <div className="text-center py-12">
+                  <Package className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                  <h3 className="text-lg font-semibold text-gray-600 mb-2">No Orders Yet</h3>
+                  <p className="text-gray-500">Your orders will appear here after you make a purchase.</p>
+                </div>
+              ) : (
+                vendorOrders.map((order) => (
+                  <div key={order.id} className="bg-white rounded-lg shadow-sm border hover:shadow-md transition-shadow p-5 flex flex-col md:flex-row md:items-center md:justify-between">
+                    <div className="flex-1 mb-4 md:mb-0">
+                      <div className="font-semibold text-lg text-gray-900 mb-1">
+                        {order.items && order.items.length > 0 ? order.items[0].name : 'Unknown Product'} 
+                        ({order.items && order.items.length > 0 ? order.items[0].quantity : 0}kg)
+                      </div>
+                      <div className="text-gray-600 text-sm mb-1">
+                        Order ID: {order.id}
+                      </div>
+                      <div className="text-gray-600 text-sm mb-1">
+                        Payment: {order.payment_method === 'online' ? 'Online' : 'Cash on Delivery'}
+                      </div>
+                      <div className="text-xs text-gray-500">
+                        {new Date(order.created_at).toLocaleDateString()}
                       </div>
                     </div>
+                    <div className="flex flex-col items-end min-w-[140px]">
+                      <div className="text-lg font-semibold text-purple-600 mb-2">
+                        ₹{order.total_amount.toFixed(2)}
+                      </div>
+                      <div className={`text-sm mb-2 font-medium ${
+                        order.status === 'confirmed' ? 'text-green-600' :
+                        order.status === 'pending' ? 'text-yellow-600' :
+                        order.status === 'delivered' ? 'text-blue-600' :
+                        'text-gray-600'
+                      }`}>
+                        {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
+                      </div>
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="font-medium border-purple-500 text-purple-600 hover:bg-purple-50"
+                        onClick={() => {
+                          toast({
+                            title: "Order Details",
+                            description: `Order ${order.id} - ${order.status}`,
+                          });
+                        }}
+                      >
+                        View Details
+                      </Button>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
           </TabsContent>
 
           <TabsContent value="price-trends" className="space-y-4">

@@ -9,6 +9,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { fetchProductGroups, createProductGroup, updateProductGroupStatus } from "@/lib/productGroupApi";
 import { supplierApi, SupplierProfile } from "@/services/supplierApi";
+import { orderApi } from "@/services/orderApi";
 
 const SupplierDashboard = () => {
   const { logout, user } = useAuth();
@@ -441,12 +442,59 @@ const SupplierDashboard = () => {
   const [individualOrders, setIndividualOrders] = useState([]);
   const [confirmedOrders, setConfirmedOrders] = useState([]);
 
-  // Fetch individual and confirmed orders (to be implemented)
+  // Fetch individual and confirmed orders
   useEffect(() => {
-    // TODO: Implement API calls to fetch individual and confirmed orders
-    setIndividualOrders([]);
-    setConfirmedOrders([]);
-  }, []);
+    const fetchSupplierOrders = async () => {
+      try {
+        if (!supplierData?.id) {
+          return;
+        }
+
+        console.log('Fetching orders for supplier:', supplierData.id);
+        const response = await orderApi.getBySupplierId(supplierData.id);
+        console.log('Supplier orders response:', response);
+        
+        // Parse JSON fields and categorize orders
+        const ordersWithParsedData = response.orders.map(order => ({
+          ...order,
+          items: typeof order.items === 'string' ? JSON.parse(order.items) : order.items,
+          customer_details: order.customer_details ? 
+            (typeof order.customer_details === 'string' ? JSON.parse(order.customer_details) : order.customer_details) 
+            : null
+        }));
+
+        // For now, we'll treat all orders as confirmed since payment has been processed
+        // In future, you might want to filter based on status
+        const transformedOrders = ordersWithParsedData.map(order => ({
+          id: order.id,
+          product: order.items && order.items.length > 0 ? order.items[0].name : 'Unknown Product',
+          type: order.order_type,
+          vendors: 1, // Single vendor per order
+          status: order.status === 'confirmed' ? 'Ready to Ship' : 'Processing',
+          value: `₹${order.total_amount.toFixed(2)}`,
+          quantity: order.items && order.items.length > 0 ? `${order.items[0].quantity}kg` : '0kg',
+          deliveryDate: order.delivery_date || 'TBD',
+          customerName: order.customer_details?.name || 'Unknown Customer',
+          customerPhone: order.customer_details?.phone || '',
+          paymentMethod: order.payment_method,
+          createdAt: order.created_at
+        }));
+
+        setConfirmedOrders(transformedOrders);
+        setIndividualOrders(transformedOrders); // For now, all orders appear in both tabs
+
+      } catch (error) {
+        console.error('Error fetching supplier orders:', error);
+        toast({
+          title: "Error",
+          description: "Failed to load orders. Please refresh the page.",
+          variant: "destructive"
+        });
+      }
+    };
+
+    fetchSupplierOrders();
+  }, [supplierData]);
 
   return (
     <div className="min-h-screen bg-slate-50">
