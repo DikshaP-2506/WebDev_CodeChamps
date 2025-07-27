@@ -566,7 +566,7 @@ const SupplierDashboard = () => {
                   <img 
                     src="/logo.jpg" 
                     alt="MarketConnect Logo" 
-                    className="w-12 h-12 object-contain rounded-lg"
+                    className="w-16 h-16 object-contain rounded-lg"
                   />
                   <div>
                     <h1 className="text-2xl font-bold text-white">Supplier Dashboard</h1>

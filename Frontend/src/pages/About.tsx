@@ -66,11 +66,11 @@ const About = () => {
       <div className="bg-gradient-to-r from-blue-600 to-green-600 text-white">
         <div className="container mx-auto px-4 py-16">
           <div className="text-center">
-            <div className="flex items-center justify-center gap-4 mb-4">
+            <div className="flex items-center justify-center gap-6 mb-4">
               <img 
                 src="/logo.jpg" 
                 alt="MarketConnect Logo" 
-                className="w-20 h-20 object-contain rounded-lg"
+                className="w-24 h-24 object-contain rounded-lg"
               />
               <h1 className="text-4xl md:text-6xl font-bold">About MarketConnect</h1>
             </div>
