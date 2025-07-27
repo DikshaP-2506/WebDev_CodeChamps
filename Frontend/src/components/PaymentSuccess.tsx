@@ -117,6 +117,9 @@ export const PaymentSuccess: React.FC<PaymentSuccessProps> = ({
       setIsGeneratingReceipt(false);
     }
   };
+  // Check if this is a COD order
+  const isCODOrder = paymentId.startsWith('COD_');
+
   return (
     <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
       <div className="bg-white rounded-lg shadow-lg p-8 w-full max-w-md text-center">
@@ -124,9 +127,14 @@ export const PaymentSuccess: React.FC<PaymentSuccessProps> = ({
           <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
             <CheckCircle2 className="w-8 h-8 text-green-600" />
           </div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Payment Successful!</h2>
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">
+            {isCODOrder ? 'Order Confirmed!' : 'Payment Successful!'}
+          </h2>
           <p className="text-gray-600">
-            Your {orderType === 'individual' ? 'order' : 'group participation'} has been confirmed
+            {isCODOrder 
+              ? `Your ${orderType === 'individual' ? 'order' : 'group participation'} has been confirmed. Pay when delivered.`
+              : `Your ${orderType === 'individual' ? 'order' : 'group participation'} has been confirmed`
+            }
           </p>
         </div>
 
@@ -152,8 +160,12 @@ export const PaymentSuccess: React.FC<PaymentSuccessProps> = ({
             )}
             <div className="border-t pt-2 mt-2">
               <div className="flex justify-between">
-                <span className="text-gray-600">Amount Paid:</span>
-                <span className="font-bold text-green-600">{formatAmount(amount)}</span>
+                <span className="text-gray-600">
+                  {isCODOrder ? 'Amount to Pay on Delivery:' : 'Amount Paid:'}
+                </span>
+                <span className={`font-bold ${isCODOrder ? 'text-orange-600' : 'text-green-600'}`}>
+                  {formatAmount(amount)}
+                </span>
               </div>
             </div>
           </div>
@@ -212,7 +224,11 @@ export const PaymentSuccess: React.FC<PaymentSuccessProps> = ({
         <div className="mt-6 text-xs text-gray-500 space-y-1">
           <p>✅ A confirmation email has been sent to your registered email address.</p>
           <p>📞 For support, contact us at support@marketconnect.com</p>
-          <p>🔒 Your payment is secured by Razorpay with 256-bit SSL encryption.</p>
+          {isCODOrder ? (
+            <p>💵 Please keep the exact amount ready for cash payment upon delivery.</p>
+          ) : (
+            <p>🔒 Your payment is secured by Razorpay with 256-bit SSL encryption.</p>
+          )}
         </div>
       </div>
     </div>
