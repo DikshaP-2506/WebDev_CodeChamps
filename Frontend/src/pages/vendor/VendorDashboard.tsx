@@ -159,11 +159,36 @@ const VendorDashboard = () => {
         return;
       }
 
-      // Find supplier ID if this is an individual order
+      // Find supplier ID for both individual and group orders
       let supplierId = null;
       if (paymentData.type === 'individual' && paymentData.supplier?.id) {
         supplierId = paymentData.supplier.id;
+        console.log('🔧 Individual order - supplier ID:', supplierId);
+      } else if (paymentData.type === 'group' && paymentData.group?.created_by) {
+        supplierId = paymentData.group.created_by;
+        console.log('🔧 Group order - supplier ID from created_by:', supplierId);
+        console.log('🔧 Group data:', paymentData.group);
+      } else if (paymentData.type === 'group') {
+        console.error('🚨 Group order missing created_by field!');
+        console.error('🚨 Full group data:', paymentData.group);
+        console.error('🚨 Available group fields:', Object.keys(paymentData.group || {}));
       }
+
+      if (!supplierId) {
+        console.error('🚨 CRITICAL: No supplier ID found!');
+        console.error('🚨 Payment type:', paymentData.type);
+        console.error('🚨 Payment data:', paymentData);
+        
+        toast({
+          title: "Order Creation Failed",
+          description: "Supplier information is missing. Please try again or contact support.",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      console.log('🔧 Final supplier ID to be saved:', supplierId);
+      console.log('🔧 Order type to be saved:', paymentData.type);
 
       // Prepare order items
       const orderItems = [{
@@ -206,6 +231,14 @@ const VendorDashboard = () => {
       
       const response = await orderApi.create(orderData);
       console.log('Order saved successfully:', response);
+      
+      // 🔧 Additional verification logging
+      console.log('✅ Order created with details:');
+      console.log('📋 Order ID:', orderData.id);
+      console.log('👨‍💼 Vendor ID:', orderData.vendor_id);
+      console.log('🏢 Supplier ID:', orderData.supplier_id);
+      console.log('📦 Order Type:', orderData.order_type);
+      console.log('💰 Total Amount:', orderData.total_amount);
       
       toast({
         title: "Order Confirmed! 🎉",
@@ -530,6 +563,10 @@ const VendorDashboard = () => {
   };
 
   const handleJoinGroupPayment = (group, quantity) => {
+    console.log('🚀 Starting group order payment process');
+    console.log('📋 Group data received:', group);
+    console.log('📊 Quantity:', quantity);
+    
     const pricePerKg = parseInt(group.pricePerKg.replace('₹', ''));
     const subtotal = quantity * pricePerKg;
     const groupDiscount = calculateGroupDiscount(subtotal, group.discount);
@@ -550,6 +587,13 @@ const VendorDashboard = () => {
       orderId: generateOrderId('group'),
       timestamp: new Date().toISOString()
     };
+
+    console.log('💳 Payment data prepared:', paymentData);
+    console.log('🏢 Group supplier info:', {
+      supplier: group.supplier,
+      created_by: group.created_by,
+      groupId: group.id
+    });
 
     setPaymentDetails(paymentData);
     setShowGroupSuggestionsModal(false);
@@ -966,27 +1010,33 @@ const VendorDashboard = () => {
   // Individual suppliers data derived from product groups (for individual purchases)
   const [individualSuppliers, setIndividualSuppliers] = useState([]);
 
-  const mapGroupData = (group) => ({
-    id: group.id,
-    product: group.product,
-    pricePerKg: group.price || "N/A",
-    actualRate: group.actual_rate || "",
-    finalRate: group.final_rate || "",
-    discountPercentage: group.discount_percentage || "",
-    targetQty: group.quantity || "N/A",
-    currentQty: group.currentQty || "0",
-    deadline: group.deadline,
-    location: group.location,
-    latitude: group.latitude,
-    longitude: group.longitude,
-    participants: group.participants || 1,
-    status: group.status,
-    discount: group.discount || "0%",
-    supplier: group.supplier || "Supplier",
-    deliveryAddress: group.location || "",
-    image: group.image || "",
-    otherGroupProducts: [],
-  });
+  const mapGroupData = (group) => {
+    console.log('🗺️ Mapping group data:', group);
+    const mappedData = {
+      id: group.id,
+      product: group.product,
+      pricePerKg: group.price || "N/A",
+      actualRate: group.actual_rate || "",
+      finalRate: group.final_rate || "",
+      discountPercentage: group.discount_percentage || "",
+      targetQty: group.quantity || "N/A",
+      currentQty: group.currentQty || "0",
+      deadline: group.deadline,
+      location: group.location,
+      latitude: group.latitude,
+      longitude: group.longitude,
+      participants: group.participants || 1,
+      status: group.status,
+      discount: group.discount || "0%",
+      supplier: group.supplier || "Supplier",
+      created_by: group.created_by, // 🔧 CRITICAL: Adding created_by field
+      deliveryAddress: group.location || "",
+      image: group.image || "",
+      otherGroupProducts: [],
+    };
+    console.log('✅ Mapped group data:', mappedData);
+    return mappedData;
+  };
 
   // Transform product groups into individual suppliers for individual purchases
   const transformGroupsToSuppliers = (groups) => {
@@ -1015,15 +1065,24 @@ const VendorDashboard = () => {
   useEffect(() => {
     const loadGroups = async () => {
       try {
+        console.log('🔄 Loading product groups from backend...');
         const groups = await fetchProductGroups();
+        console.log('📥 Raw groups from backend:', groups);
+        
         const mappedGroups = groups.map(mapGroupData);
         setGroupOrders(mappedGroups);
-        console.log('Fetched product groups:', mappedGroups);
+        console.log('✅ Mapped product groups:', mappedGroups);
+        
+        // Check if any groups have created_by field
+        const groupsWithCreatedBy = mappedGroups.filter(g => g.created_by);
+        console.log('👥 Groups with created_by field:', groupsWithCreatedBy);
         
         // Transform groups into individual suppliers
         const suppliers = transformGroupsToSuppliers(groups);
         setIndividualSuppliers(suppliers);
+        console.log('👨‍💼 Individual suppliers:', suppliers);
       } catch (err) {
+        console.error('❌ Error loading groups:', err);
         toast({
           title: "Error",
           description: "Failed to fetch product groups.",
