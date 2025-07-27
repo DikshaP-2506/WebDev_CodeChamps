@@ -795,45 +795,180 @@ const SupplierDashboard = () => {
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Business Information */}
+              {/* Personal Details & Business Information */}
               <div className="space-y-6">
+                {/* Personal Details */}
                 <div>
-                  <h3 className="text-lg font-semibold mb-4">Business Information</h3>
+                  <h3 className="text-lg font-semibold mb-4">Personal Details</h3>
                   <div className="space-y-4">
                     <div>
-                      <label className="block text-sm font-medium mb-2">Company Name</label>
-                      <input type="text" defaultValue="Green Valley Supplies" className="w-full border rounded px-3 py-2" />
+                      <label className="block text-sm font-medium mb-2">Full Name *</label>
+                      <input 
+                        type="text" 
+                        value={editFormData?.fullName || ''} 
+                        onChange={(e) => handleEditInputChange('fullName', e.target.value)}
+                        className="w-full border rounded px-3 py-2" 
+                        placeholder="Enter your full name"
+                      />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium mb-2">Business Type</label>
-                      <select className="w-full border rounded px-3 py-2">
-                        <option>Wholesale Distributor</option>
-                        <option>Manufacturer</option>
-                        <option>Retailer</option>
-                        <option>Importer/Exporter</option>
+                      <label className="block text-sm font-medium mb-2">Mobile Number *</label>
+                      <input 
+                        type="tel" 
+                        value={editFormData?.mobileNumber || ''} 
+                        onChange={(e) => handleEditInputChange('mobileNumber', e.target.value)}
+                        className="w-full border rounded px-3 py-2" 
+                        placeholder="+91 9876543210"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-2">Language Preference *</label>
+                      <select 
+                        value={editFormData?.languagePreference || ''}
+                        onChange={(e) => handleEditInputChange('languagePreference', e.target.value)}
+                        className="w-full border rounded px-3 py-2"
+                      >
+                        <option value="">Select Language</option>
+                        <option value="Hindi">Hindi</option>
+                        <option value="Marathi">Marathi</option>
+                        <option value="English">English</option>
+                        <option value="Gujarati">Gujarati</option>
+                        <option value="Punjabi">Punjabi</option>
+                        <option value="Bengali">Bengali</option>
                       </select>
                     </div>
+                  </div>
+                </div>
+
+                {/* Business Details */}
+                <div>
+                  <h3 className="text-lg font-semibold mb-4">Business Details</h3>
+                  <div className="space-y-4">
                     <div>
-                      <label className="block text-sm font-medium mb-2">GST Number</label>
-                      <input type="text" defaultValue="27AABCU9603R1ZX" className="w-full border rounded px-3 py-2" />
+                      <label className="block text-sm font-medium mb-2">Business Name</label>
+                      <input 
+                        type="text" 
+                        value={editFormData?.businessName || ''} 
+                        onChange={(e) => handleEditInputChange('businessName', e.target.value)}
+                        className="w-full border rounded px-3 py-2" 
+                        placeholder="Enter your business name"
+                      />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium mb-2">License Number</label>
-                      <input type="text" defaultValue="WB/2022/15847" className="w-full border rounded px-3 py-2" />
+                      <label className="block text-sm font-medium mb-2">Business Address *</label>
+                      <input 
+                        type="text" 
+                        value={editFormData?.businessAddress || ''} 
+                        onChange={(e) => handleEditInputChange('businessAddress', e.target.value)}
+                        className="w-full border rounded px-3 py-2" 
+                        placeholder="Street, Landmark, etc."
+                      />
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium mb-2">City *</label>
+                        <input 
+                          type="text" 
+                          value={editFormData?.city || ''} 
+                          onChange={(e) => handleEditInputChange('city', e.target.value)}
+                          className="w-full border rounded px-3 py-2" 
+                          placeholder="Enter city"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium mb-2">Pincode *</label>
+                        <input 
+                          type="text" 
+                          value={editFormData?.pincode || ''} 
+                          onChange={(e) => handleEditInputChange('pincode', e.target.value)}
+                          className="w-full border rounded px-3 py-2" 
+                          placeholder="Enter pincode"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium mb-2">State *</label>
+                        <select 
+                          value={editFormData?.state || ''}
+                          onChange={(e) => handleEditInputChange('state', e.target.value)}
+                          className="w-full border rounded px-3 py-2"
+                        >
+                          <option value="">Select State</option>
+                          <option value="Maharashtra">Maharashtra</option>
+                          <option value="Delhi">Delhi</option>
+                          <option value="Karnataka">Karnataka</option>
+                          <option value="Tamil Nadu">Tamil Nadu</option>
+                          <option value="Gujarat">Gujarat</option>
+                          <option value="Punjab">Punjab</option>
+                          <option value="West Bengal">West Bengal</option>
+                          <option value="Uttar Pradesh">Uttar Pradesh</option>
+                        </select>
+                      </div>
                     </div>
                     <div>
-                      <label className="block text-sm font-medium mb-2">Years in Business</label>
-                      <input type="number" defaultValue="8" className="w-full border rounded px-3 py-2" />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium mb-2">Employee Count</label>
-                      <select className="w-full border rounded px-3 py-2">
-                        <option>1-10</option>
-                        <option>11-25</option>
-                        <option>25-50</option>
-                        <option>50-100</option>
-                        <option>100+</option>
+                      <label className="block text-sm font-medium mb-2">Business Type *</label>
+                      <select 
+                        value={editFormData?.businessType || ''}
+                        onChange={(e) => handleEditInputChange('businessType', e.target.value)}
+                        className="w-full border rounded px-3 py-2"
+                      >
+                        <option value="">Select Business Type</option>
+                        <option value="Wholesale">Wholesale</option>
+                        <option value="Retail">Retail</option>
+                        <option value="Manufacturing">Manufacturing</option>
+                        <option value="Distribution">Distribution</option>
+                        <option value="Import/Export">Import/Export</option>
+                        <option value="Local Supplier">Local Supplier</option>
+                        <option value="Other">Other</option>
                       </select>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium mb-2">GST Number</label>
+                        <input 
+                          type="text" 
+                          value={editFormData?.gstNumber || ''} 
+                          onChange={(e) => handleEditInputChange('gstNumber', e.target.value)}
+                          className="w-full border rounded px-3 py-2" 
+                          placeholder="Enter GST number"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium mb-2">License Number</label>
+                        <input 
+                          type="text" 
+                          value={editFormData?.licenseNumber || ''} 
+                          onChange={(e) => handleEditInputChange('licenseNumber', e.target.value)}
+                          className="w-full border rounded px-3 py-2" 
+                          placeholder="Enter license number"
+                        />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium mb-2">Years in Business</label>
+                        <input 
+                          type="number" 
+                          value={editFormData?.yearsInBusiness || ''} 
+                          onChange={(e) => handleEditInputChange('yearsInBusiness', e.target.value)}
+                          className="w-full border rounded px-3 py-2" 
+                          placeholder="Enter years in business"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium mb-2">Employee Count</label>
+                        <select 
+                          value={editFormData?.employeeCount || ''}
+                          onChange={(e) => handleEditInputChange('employeeCount', e.target.value)}
+                          className="w-full border rounded px-3 py-2"
+                        >
+                          <option value="">Select Employee Count</option>
+                          <option value="1-10">1-10</option>
+                          <option value="11-25">11-25</option>
+                          <option value="25-50">25-50</option>
+                          <option value="50-100">50-100</option>
+                          <option value="100+">100+</option>
+                        </select>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -844,223 +979,138 @@ const SupplierDashboard = () => {
                   <div className="space-y-4">
                     <div>
                       <label className="block text-sm font-medium mb-2">Primary Email</label>
-                      <input type="email" defaultValue="amit@greenvalleysupplies.com" className="w-full border rounded px-3 py-2" />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium mb-2">Phone Number</label>
-                      <input type="tel" defaultValue="+91 99887 76543" className="w-full border rounded px-3 py-2" />
+                      <input 
+                        type="email" 
+                        value={editFormData?.primaryEmail || ''} 
+                        onChange={(e) => handleEditInputChange('primaryEmail', e.target.value)}
+                        className="w-full border rounded px-3 py-2" 
+                        placeholder="Enter primary email"
+                      />
                     </div>
                     <div>
                       <label className="block text-sm font-medium mb-2">WhatsApp Business</label>
-                      <input type="tel" defaultValue="+91 99887 76543" className="w-full border rounded px-3 py-2" />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium mb-2">Website</label>
-                      <input type="url" defaultValue="www.greenvalleysupplies.com" className="w-full border rounded px-3 py-2" />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium mb-2">Business Address</label>
-                      <textarea 
-                        defaultValue="Plot 45, Industrial Area, Sector 22, Gurgaon, Haryana 122015"
-                        className="w-full border rounded px-3 py-2"
-                        rows={3}
+                      <input 
+                        type="tel" 
+                        value={editFormData?.whatsappBusiness || ''} 
+                        onChange={(e) => handleEditInputChange('whatsappBusiness', e.target.value)}
+                        className="w-full border rounded px-3 py-2" 
+                        placeholder="Enter WhatsApp business number"
                       />
                     </div>
                   </div>
                 </div>
               </div>
 
-              {/* Service & Product Information */}
+              {/* Supply Capabilities & Preferences */}
               <div className="space-y-6">
+                {/* Supply Capabilities */}
                 <div>
-                  <h3 className="text-lg font-semibold mb-4">Products & Services</h3>
+                  <h3 className="text-lg font-semibold mb-4">Supply Capabilities *</h3>
+                  <div className="grid grid-cols-2 gap-3">
+                    {['Spices', 'Oil', 'Vegetables', 'Grains', 'Dairy', 'Meat', 'Fruits', 'Flour', 'Sugar', 'Salt', 'Herbs', 'Packaging', 'Equipment'].map((capability) => (
+                      <label key={capability} className="flex items-center">
+                        <input 
+                          type="checkbox" 
+                          checked={editFormData?.supplyCapabilities?.includes(capability) || false}
+                          onChange={(e) => handleSupplyCapabilityToggle(capability)}
+                          className="mr-2" 
+                        />
+                        <span className="text-sm">{capability}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Delivery Preferences */}
+                <div>
+                  <h3 className="text-lg font-semibold mb-4">Delivery Preferences</h3>
                   <div className="space-y-4">
-                    <div>
-                      <label className="block text-sm font-medium mb-2">Product Categories</label>
-                      <div className="space-y-2">
-                        <label className="flex items-center">
-                          <input type="checkbox" defaultChecked className="mr-2" />
-                          Fresh Vegetables
-                        </label>
-                        <label className="flex items-center">
-                          <input type="checkbox" defaultChecked className="mr-2" />
-                          Fruits
-                        </label>
-                        <label className="flex items-center">
-                          <input type="checkbox" defaultChecked className="mr-2" />
-                          Spices
-                        </label>
-                        <label className="flex items-center">
-                          <input type="checkbox" defaultChecked className="mr-2" />
-                          Grains
-                        </label>
-                        <label className="flex items-center">
-                          <input type="checkbox" className="mr-2" />
-                          Dairy Products
-                        </label>
-                      </div>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium mb-2">Minimum Order Value</label>
-                      <input type="number" defaultValue="5000" className="w-full border rounded px-3 py-2" />
-                    </div>
                     <div>
                       <label className="block text-sm font-medium mb-2">Preferred Delivery Time *</label>
                       <select 
-                        value={editFormData.preferredDeliveryTime} 
+                        value={editFormData?.preferredDeliveryTime || ''} 
                         onChange={(e) => handleEditInputChange('preferredDeliveryTime', e.target.value)}
                         className="w-full border rounded px-3 py-2"
                       >
+                        <option value="">Select Delivery Time</option>
                         <option value="Morning (6 AM - 12 PM)">Morning (6 AM - 12 PM)</option>
                         <option value="Afternoon (12 PM - 6 PM)">Afternoon (12 PM - 6 PM)</option>
                         <option value="Evening (6 PM - 12 AM)">Evening (6 PM - 12 AM)</option>
                       </select>
                     </div>
                   </div>
+                </div>
 
-                  {/* Business Information */}
-                  <div>
-                    <h3 className="text-lg font-semibold mb-4">Business Information</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-sm font-medium mb-2">GST Number</label>
-                        <input 
-                          type="text" 
-                          value={editFormData.gstNumber || ''} 
-                          onChange={(e) => handleEditInputChange('gstNumber', e.target.value)}
-                          className="w-full border rounded px-3 py-2" 
-                          placeholder="Enter GST number"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium mb-2">License Number</label>
-                        <input 
-                          type="text" 
-                          value={editFormData.licenseNumber || ''} 
-                          onChange={(e) => handleEditInputChange('licenseNumber', e.target.value)}
-                          className="w-full border rounded px-3 py-2" 
-                          placeholder="Enter license number"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium mb-2">Years in Business</label>
-                        <input 
-                          type="text" 
-                          value={editFormData.yearsInBusiness || ''} 
-                          onChange={(e) => handleEditInputChange('yearsInBusiness', e.target.value)}
-                          className="w-full border rounded px-3 py-2" 
-                          placeholder="e.g., 5"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium mb-2">Employee Count</label>
-                        <input 
-                          type="text" 
-                          value={editFormData.employeeCount || ''} 
-                          onChange={(e) => handleEditInputChange('employeeCount', e.target.value)}
-                          className="w-full border rounded px-3 py-2" 
-                          placeholder="e.g., 10-50"
-                        />
-                      </div>
+                {/* Certifications */}
+                <div>
+                  <h3 className="text-lg font-semibold mb-4">Certifications (Optional)</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium mb-2">Food Safety License</label>
+                      <input 
+                        type="text" 
+                        value={editFormData?.foodSafetyLicense || ''} 
+                        onChange={(e) => handleEditInputChange('foodSafetyLicense', e.target.value)}
+                        className="w-full border rounded px-3 py-2" 
+                        placeholder="Enter license number"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-2">Organic Certification</label>
+                      <input 
+                        type="text" 
+                        value={editFormData?.organicCertification || ''} 
+                        onChange={(e) => handleEditInputChange('organicCertification', e.target.value)}
+                        className="w-full border rounded px-3 py-2" 
+                        placeholder="Enter certificate number"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-2">ISO Certification</label>
+                      <input 
+                        type="text" 
+                        value={editFormData?.isoCertification || ''} 
+                        onChange={(e) => handleEditInputChange('isoCertification', e.target.value)}
+                        className="w-full border rounded px-3 py-2" 
+                        placeholder="e.g., ISO 22000:2018"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-2">Export License</label>
+                      <input 
+                        type="text" 
+                        value={editFormData?.exportLicense || ''} 
+                        onChange={(e) => handleEditInputChange('exportLicense', e.target.value)}
+                        className="w-full border rounded px-3 py-2" 
+                        placeholder="Enter license number"
+                      />
                     </div>
                   </div>
+                </div>
 
-                  {/* Additional Contact Information */}
-                  <div>
-                    <h3 className="text-lg font-semibold mb-4">Additional Contact Information</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-sm font-medium mb-2">Primary Email</label>
-                        <input 
-                          type="email" 
-                          value={editFormData.primaryEmail || ''} 
-                          onChange={(e) => handleEditInputChange('primaryEmail', e.target.value)}
-                          className="w-full border rounded px-3 py-2" 
-                          placeholder="business@example.com"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium mb-2">WhatsApp Business</label>
-                        <input 
-                          type="text" 
-                          value={editFormData.whatsappBusiness || ''} 
-                          onChange={(e) => handleEditInputChange('whatsappBusiness', e.target.value)}
-                          className="w-full border rounded px-3 py-2" 
-                          placeholder="+91 9876543210"
-                        />
-                      </div>
+                {/* Location */}
+                <div>
+                  <h3 className="text-lg font-semibold mb-4">Location (Optional)</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium mb-2">Latitude</label>
+                      <input 
+                        type="text" 
+                        value={editFormData?.latitude || ''} 
+                        onChange={(e) => handleEditInputChange('latitude', e.target.value)}
+                        className="w-full border rounded px-3 py-2" 
+                        placeholder="Auto-detect or enter manually"
+                      />
                     </div>
-                  </div>
-
-                  {/* Certifications */}
-                  <div>
-                    <h3 className="text-lg font-semibold mb-4">Certifications</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-sm font-medium mb-2">Food Safety License</label>
-                        <input 
-                          type="text" 
-                          value={editFormData.foodSafetyLicense || ''} 
-                          onChange={(e) => handleEditInputChange('foodSafetyLicense', e.target.value)}
-                          className="w-full border rounded px-3 py-2" 
-                          placeholder="Enter license number"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium mb-2">Organic Certification</label>
-                        <input 
-                          type="text" 
-                          value={editFormData.organicCertification || ''} 
-                          onChange={(e) => handleEditInputChange('organicCertification', e.target.value)}
-                          className="w-full border rounded px-3 py-2" 
-                          placeholder="Enter certification number"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium mb-2">ISO Certification</label>
-                        <input 
-                          type="text" 
-                          value={editFormData.isoCertification || ''} 
-                          onChange={(e) => handleEditInputChange('isoCertification', e.target.value)}
-                          className="w-full border rounded px-3 py-2" 
-                          placeholder="Enter certification number"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium mb-2">Export License</label>
-                        <input 
-                          type="text" 
-                          value={editFormData.exportLicense || ''} 
-                          onChange={(e) => handleEditInputChange('exportLicense', e.target.value)}
-                          className="w-full border rounded px-3 py-2" 
-                          placeholder="Enter license number"
-                        />
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Location Coordinates */}
-                  <div>
-                    <h3 className="text-lg font-semibold mb-4">Location (Optional)</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-sm font-medium mb-2">Latitude</label>
-                        <input 
-                          type="text" 
-                          value={editFormData.latitude || ''} 
-                          onChange={(e) => handleEditInputChange('latitude', e.target.value)}
-                          className="w-full border rounded px-3 py-2" 
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium mb-2">Longitude</label>
-                        <input 
-                          type="text" 
-                          value={editFormData.longitude || ''} 
-                          onChange={(e) => handleEditInputChange('longitude', e.target.value)}
-                          className="w-full border rounded px-3 py-2" 
-                        />
-                      </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-2">Longitude</label>
+                      <input 
+                        type="text" 
+                        value={editFormData?.longitude || ''} 
+                        onChange={(e) => handleEditInputChange('longitude', e.target.value)}
+                        className="w-full border rounded px-3 py-2" 
+                        placeholder="Auto-detect or enter manually"
+                      />
                     </div>
                   </div>
                 </div>

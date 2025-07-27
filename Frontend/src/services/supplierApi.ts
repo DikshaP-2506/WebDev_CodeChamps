@@ -17,13 +17,15 @@ export interface SupplierProfile {
   preferredDeliveryTime: string;
   latitude?: string;
   longitude?: string;
-  // Additional fields
+  // Additional Business Information
   gstNumber?: string;
   licenseNumber?: string;
   yearsInBusiness?: string;
   employeeCount?: string;
+  // Contact Information
   primaryEmail?: string;
   whatsappBusiness?: string;
+  // Certifications
   foodSafetyLicense?: string;
   organicCertification?: string;
   isoCertification?: string;
