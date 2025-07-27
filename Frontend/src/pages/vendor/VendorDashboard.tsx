@@ -11,6 +11,8 @@ import { PaymentSuccess } from "@/components/PaymentSuccess";
 import { useAuth } from "@/contexts/AuthContext";
 import { vendorApi } from "@/services/vendorApi";
 import { orderApi } from "@/services/orderApi";
+import Navbar from "@/components/Navbar";
+import Footer from "@/components/Footer";
 import { 
   generateOrderId, 
   formatAmount,
@@ -1035,7 +1037,9 @@ const VendorDashboard = () => {
   const [groupOrders, setGroupOrders] = useState<any[]>([]);
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <>
+      <Navbar />
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 pt-20">
       {/* Loading State */}
       {profileLoading ? (
         <div className="flex items-center justify-center min-h-screen">
@@ -1046,8 +1050,8 @@ const VendorDashboard = () => {
         </div>
       ) : (
         <>
-          {/* Header */}
-          <div className="bg-blue-600 shadow-sm">
+          {/* Header - Hidden */}
+          <div className="hidden">
             <div className="container mx-auto px-4 py-4">
               <div className="flex justify-between items-center">
                 <div>
@@ -2631,6 +2635,8 @@ const VendorDashboard = () => {
         </>
       )}
     </div>
+    <Footer />
+    </>
   );
 };
 

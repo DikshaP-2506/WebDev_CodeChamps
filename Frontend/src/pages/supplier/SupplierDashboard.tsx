@@ -10,6 +10,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { fetchProductGroups, createProductGroup, updateProductGroupStatus } from "@/lib/productGroupApi";
 import { supplierApi, SupplierProfile } from "@/services/supplierApi";
 import { orderApi } from "@/services/orderApi";
+import Navbar from "@/components/Navbar";
+import Footer from "@/components/Footer";
 
 const SupplierDashboard = () => {
   const { logout, user } = useAuth();
@@ -543,7 +545,9 @@ const SupplierDashboard = () => {
   }, [supplierData, toast]);
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <>
+      <Navbar />
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-green-50 pt-20">
       {/* Loading State */}
       {profileLoading ? (
         <div className="flex items-center justify-center min-h-screen">
@@ -555,7 +559,7 @@ const SupplierDashboard = () => {
       ) : (
         <>
           {/* Header */}
-          <div className="bg-green-600 shadow-sm">
+          <div className="hidden">
             <div className="container mx-auto px-4 py-4">
               <div className="flex justify-between items-center">
                 <div>
@@ -1627,6 +1631,8 @@ const SupplierDashboard = () => {
       </>
       )}
     </div>
+    <Footer />
+    </>
   );
 };
 

@@ -12,6 +12,8 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { ShoppingCart, ArrowLeft } from "lucide-react";
 import { useAuth } from "../../contexts/AuthContext";
+import Navbar from "@/components/Navbar";
+import Footer from "@/components/Footer";
 
 const VendorAuth: React.FC = () => {
   const location = useLocation();
@@ -91,16 +93,22 @@ const VendorAuth: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-green-50 relative">
-      {/* Back Button */}
-      <button
-        onClick={() => navigate('/')}
-        className="absolute top-6 left-6 p-2 bg-white/80 hover:bg-white rounded-full shadow-md transition-all duration-200 flex items-center gap-2 text-gray-600 hover:text-gray-800"
-      >
-        <ArrowLeft className="w-4 h-4" />
-        <span className="text-sm font-medium">Back</span>
-      </button>
-      <Card className="w-full max-w-md shadow-xl border-2 border-vendor/30">
+    <>
+      <Navbar />
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 pt-20">
+        {/* Back Button - Below Navbar */}
+        <div className="container mx-auto px-4 pt-4">
+          <button
+            onClick={() => navigate('/')}
+            className="flex items-center gap-2 p-2 bg-white/80 hover:bg-white rounded-lg shadow-md transition-all duration-200 text-gray-600 hover:text-gray-800 mb-6"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            <span className="text-sm font-medium">Back to Home</span>
+          </button>
+        </div>
+        
+        <div className="flex items-center justify-center px-4">
+          <Card className="w-full max-w-md shadow-xl border-2 border-vendor/30">
         <CardHeader className="flex flex-col items-center pb-2">
           <div className="w-16 h-16 bg-gradient-vendor rounded-full flex items-center justify-center mb-4">
             <ShoppingCart className="w-8 h-8 text-white" />
@@ -152,7 +160,10 @@ const VendorAuth: React.FC = () => {
           </div>
         </CardContent>
       </Card>
-    </div>
+        </div>
+      </div>
+      <Footer />
+    </>
   );
 };
 
