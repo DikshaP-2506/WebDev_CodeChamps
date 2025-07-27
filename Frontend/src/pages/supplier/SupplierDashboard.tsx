@@ -515,7 +515,7 @@ const SupplierDashboard = () => {
             product: items && items.length > 0 ? items[0].name : 'Unknown Product',
             type: order.order_type,
             vendors: 1,
-            status: order.status === 'accepted' ? 'Processing' : order.status === 'completed' ? 'Completed' : 'Ready to Ship',
+            status: order.status === 'accepted' ? 'Processing' : order.status === 'completed' ? 'Completed' : order.status === 'delivered' ? 'Delivered' : 'Ready to Ship',
             value: `₹${order.total_amount.toFixed(2)}`,
             quantity: items && items.length > 0 ? `${items[0].quantity}kg` : '0kg',
             deliveryDate: order.delivery_date || 'TBD',
@@ -845,19 +845,60 @@ const SupplierDashboard = () => {
                       <Clock className="w-3 h-3 mr-1" />
                       <span>Deliver {order.deliveryDate}</span>
                     </div>
-                    <button
-                      className="w-full bg-purple-600 hover:bg-purple-700 text-white py-2 rounded-lg font-medium transition-colors"
-                      onClick={async () => {
-                        try {
-                          // TODO: Implement confirmed order delivery API
-                          toast({ title: 'Delivered', description: 'Order marked as delivered.' });
-                        } catch (err) {
-                          toast({ title: 'Error', description: 'Failed to mark as delivered.', variant: 'destructive' });
-                        }
-                      }}
-                    >
-                      Mark as Delivered
-                    </button>
+                    {order.status !== 'Delivered' && (
+                      <button
+                        className="w-full bg-purple-600 hover:bg-purple-700 text-white py-2 rounded-lg font-medium transition-colors"
+                        onClick={async () => {
+                          try {
+                            await orderApi.updateStatus(order.id, 'delivered');
+                            toast({ title: 'Delivered', description: 'Order marked as delivered.' });
+                            // Refresh the orders to reflect the updated status
+                            const fetchSupplierOrders = async () => {
+                              try {
+                                if (!supplierData?.id) {
+                                  return;
+                                }
+                                const supplierOrdersResponse = await orderApi.getBySupplierId(supplierData.id);
+                                const allSupplierOrders = supplierOrdersResponse.orders;
+                                const transformedConfirmedOrders = allSupplierOrders.map(order => {
+                                  const items = typeof order.items === 'string' ? JSON.parse(order.items) : order.items;
+                                  const customerDetails = order.customer_details ?
+                                    (typeof order.customer_details === 'string' ? JSON.parse(order.customer_details) : order.customer_details)
+                                    : null;
+                                  return {
+                                    id: order.id,
+                                    product: items && items.length > 0 ? items[0].name : 'Unknown Product',
+                                    type: order.order_type,
+                                    vendors: 1,
+                                    status: order.status === 'accepted' ? 'Processing' : order.status === 'completed' ? 'Completed' : order.status === 'delivered' ? 'Delivered' : 'Ready to Ship',
+                                    value: `₹${order.total_amount.toFixed(2)}`,
+                                    quantity: items && items.length > 0 ? `${items[0].quantity}kg` : '0kg',
+                                    deliveryDate: order.delivery_date || 'TBD',
+                                    customerName: customerDetails?.name || 'Unknown Customer',
+                                    customerPhone: customerDetails?.phone || '',
+                                    paymentMethod: order.payment_method,
+                                    createdAt: order.created_at
+                                  };
+                                });
+                                setConfirmedOrders(transformedConfirmedOrders);
+                              } catch (error) {
+                                console.error('Error refreshing orders:', error);
+                              }
+                            };
+                            fetchSupplierOrders();
+                          } catch (err) {
+                            toast({ title: 'Error', description: 'Failed to mark as delivered.', variant: 'destructive' });
+                          }
+                        }}
+                      >
+                        Mark as Delivered
+                      </button>
+                    )}
+                    {order.status === 'Delivered' && (
+                      <div className="w-full bg-green-100 text-green-800 py-2 rounded-lg font-medium text-center">
+                        ✓ Delivered
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
