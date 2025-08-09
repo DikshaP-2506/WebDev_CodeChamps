@@ -5,7 +5,7 @@
 
 MarketConnect is a comprehensive B2B platform build during Tutdude WebDev 48 - hour Hackathon that revolutionizes supply chain management by connecting suppliers and vendors through smart group purchasing and direct supplier connections. The platform enables efficient order management, product group creation, and streamlined payment processing.
 
-![MarketConnect Banner](Frontend/public/logo.jpg)
+![MarketConnect Banner](Frontend/public/landingpage.png)
 
 ---
 
