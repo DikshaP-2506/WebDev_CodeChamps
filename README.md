@@ -220,7 +220,6 @@ WebDev_CodeChamps/
 - **Touch Optimized**: Mobile-friendly interactions
 - **Offline Support**: Basic offline functionality
 - **Location Services**: GPS-based location detection
-- **Push Notifications**: Order updates and alerts
 
 ---
 
