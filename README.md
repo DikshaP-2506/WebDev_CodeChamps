@@ -31,7 +31,6 @@ MarketConnect is a comprehensive B2B platform build during Tutdude WebDev 48 - h
 - **Real-time Updates**: Live order status and notifications
 - **Location Services**: GPS-based location detection and management
 - **Payment Gateway**: Integrated Razorpay for secure transactions
-- **Multi-language Support**: English, Hindi, Marathi, and Gujarati
 
 ---
 
@@ -53,7 +52,6 @@ MarketConnect is a comprehensive B2B platform build during Tutdude WebDev 48 - h
 - **Database**: SQLite (with planned migration to PostgreSQL)
 - **Authentication**: Firebase Admin SDK
 - **CORS**: Configured for multiple domains
-- **File Upload**: Multer for image handling
 
 ### Deployment
 - **Frontend**: Vercel
