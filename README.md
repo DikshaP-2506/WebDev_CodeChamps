@@ -197,9 +197,7 @@ WebDev_CodeChamps/
 ## 🎨 UI/UX Features
 
 - **Modern Design**: Clean, professional interface with consistent branding
-- **Dark/Light Mode**: Automatic theme detection
 - **Mobile Responsive**: Optimized for all device sizes
-- **Accessibility**: WCAG compliant with proper ARIA labels
 - **Loading States**: Skeleton loaders and progress indicators
 - **Error Handling**: User-friendly error messages and fallbacks
 - **Toast Notifications**: Real-time feedback for user actions
